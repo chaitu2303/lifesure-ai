@@ -82,7 +82,17 @@ class PremiumCalculationEngine:
                 "error": f"Sum assured ₹{sum_assured:,.0f} outside allowed range [₹{min_sa:,.0f}, ₹{max_sa:,.0f}].",
             }
 
-        # Step 1: Look up rate from premium_rates.csv
+        if premium_payment_option == "regular":
+            ppt_years = policy_term_years
+        elif premium_payment_option.startswith("limited_"):
+            try:
+                ppt_years = int(premium_payment_option.split("_")[1])
+            except Exception:
+                ppt_years = policy_term_years
+        else:
+            ppt_years = 1
+
+        # Step 1: Look up rate from premium_rates.csv using every matching dimension
         rate_per_1000 = data_loader.get_rate(
             product_id=product_id,
             payment_option=premium_payment_option,
@@ -90,6 +100,7 @@ class PremiumCalculationEngine:
             policy_term=policy_term_years,
             gender=gender,
             smoker_status=smoker_status,
+            premium_paying_term_years=ppt_years,
         )
 
         if rate_per_1000 is None:
@@ -118,18 +129,6 @@ class PremiumCalculationEngine:
                     break
 
         base_annual_premium = rate_per_1000 * (sum_assured / 1000.0) * band_factor
-
-        # Determine premium-paying term (years)
-        if premium_payment_option == "regular":
-            ppt_years = policy_term_years
-        elif premium_payment_option.startswith("limited_"):
-            try:
-                ppt_years = int(premium_payment_option.split("_")[1])
-            except Exception:
-                ppt_years = policy_term_years
-        else:
-            # Single pay
-            ppt_years = 1
 
         # Step 3: Optional Riders
         is_single_pay = premium_payment_option == "single"

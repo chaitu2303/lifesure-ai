@@ -54,8 +54,12 @@ class DataLoader:
         self.riders: Dict[str, Dict[str, Any]] = {}
         self.ulip_funds: Dict[str, Dict[str, Any]] = {}
         self.ulip_mortality: Dict[Tuple[int, str, str], float] = {}
-        self.premium_rates: Dict[Tuple[str, str, int, int, str, str], float] = {}
+        self.premium_rates: Dict[Tuple[str, str, int, int, int, str, str], float] = {}
         self.allowed_rate_keys: set = set()
+        self.products_csv_ids: set = set()
+        self.customer_profiles_csv: List[Dict[str, Any]] = []
+        self.glossary_entries: List[Dict[str, Any]] = []
+        self.validation_report: Dict[str, Any] = {}
         self.advisors: Dict[str, Dict[str, Any]] = {}
         self.advisors_list: List[Dict[str, Any]] = []
         self.slots: List[Dict[str, Any]] = []
@@ -119,8 +123,12 @@ class DataLoader:
         # 9. Customer Profiles & Goals
         self._load_customer_profiles()
 
-        # 10. Referential integrity checks
+        # 10. Glossary
+        self._load_glossary()
+
+        # 11. Referential integrity, CSV/JSON parity, and validation report
         self._verify_referential_integrity()
+        self._build_validation_report()
 
         elapsed_ms = (datetime.utcnow() - start_time).total_seconds() * 1000.0
         self.is_loaded = True
@@ -138,6 +146,8 @@ class DataLoader:
             "slots_count": len(self.slots),
             "customer_profiles_count": len(self.customer_profiles),
             "customer_goals_count": len(self.customer_goals),
+            "glossary_terms_count": len(self.glossary_entries),
+            "validation": self.validation_report,
         }
         logger.info(f"LifeWise datasets loaded successfully in {elapsed_ms:.1f}ms: {len(self.products)} products, {len(self.premium_rates)} rates.")
         return self.diagnostics
@@ -235,20 +245,25 @@ class DataLoader:
 
                     self.products[pid] = enriched
                     self.products_list.append(enriched)
-        elif os.path.isfile(csv_path):
+
+        if os.path.isfile(csv_path):
             with open(csv_path, "r", encoding="utf-8") as f:
                 reader = csv.DictReader(f)
-                for row in reader:
-                    pid = row["product_id"]
-                    # Parse JSON cells if any
-                    for key in ["sa_band_factors", "income_multiple_limits", "riders_allowed", "ulip_fund_ids", "ulip_charges", "extra_rules"]:
-                        if key in row and row[key]:
-                            try:
-                                row[key] = json.loads(row[key])
-                            except Exception:
-                                pass
-                    self.products[pid] = row
-                    self.products_list.append(row)
+                csv_rows = list(reader)
+                for row in csv_rows:
+                    if row.get("product_id"):
+                        self.products_csv_ids.add(row["product_id"].strip())
+                if not self.products:
+                    for row in csv_rows:
+                        pid = row["product_id"]
+                        for key in ["sa_band_factors", "income_multiple_limits", "riders_allowed", "ulip_fund_ids", "ulip_charges", "extra_rules"]:
+                            if key in row and row[key]:
+                                try:
+                                    row[key] = json.loads(row[key])
+                                except Exception:
+                                    pass
+                        self.products[pid] = row
+                        self.products_list.append(row)
 
     def _load_riders(self):
         riders_path = os.path.join(self.data_dir, "riders.csv")
@@ -318,9 +333,11 @@ class DataLoader:
             with open(rates_path, "r", encoding="utf-8") as f:
                 reader = csv.DictReader(f)
                 for row in reader:
+                    ppt = int(row.get("premium_paying_term_years") or 0)
                     key = (
                         row["product_id"].strip(),
                         row["premium_payment_option"].strip(),
+                        ppt,
                         int(row["entry_age"]),
                         int(row["policy_term_years"]),
                         row["gender"].strip().lower(),
@@ -383,26 +400,58 @@ class DataLoader:
                     self.slots_by_advisor[aid].append(r)
 
     def _load_customer_profiles(self):
-        # 1. Load profiles from JSON
         json_path = os.path.join(self.data_dir, "customer_profiles.json")
+        csv_path = os.path.join(self.data_dir, "customer_profiles.csv")
         if os.path.isfile(json_path):
             with open(json_path, "r", encoding="utf-8") as f:
                 self.customer_profiles = json.load(f)
+        if os.path.isfile(csv_path):
+            with open(csv_path, "r", encoding="utf-8") as f:
+                self.customer_profiles_csv = list(csv.DictReader(f))
 
-        # 2. Load customer goals from CSV
         goals_path = os.path.join(self.data_dir, "customer_goals.csv")
         if os.path.isfile(goals_path):
             with open(goals_path, "r", encoding="utf-8") as f:
-                reader = csv.DictReader(f)
-                self.customer_goals = list(reader)
+                self.customer_goals = list(csv.DictReader(f))
+
+    def _load_glossary(self):
+        import re
+        candidates = [
+            os.path.join(os.path.dirname(self.data_dir), "docs", "glossary.md"),
+            os.path.join(self.data_dir, "glossary.md"),
+            str(Path(__file__).resolve().parent.parent.parent / "Datasets" / "B2_Life_Insurance_Needs_Finder" / "docs" / "glossary.md"),
+        ]
+        path = next((p for p in candidates if p and os.path.isfile(p)), None)
+        if not path:
+            return
+        content = Path(path).read_text(encoding="utf-8", errors="replace")
+        current_section = "General"
+        for line in content.splitlines():
+            if line.startswith("## "):
+                current_section = line[3:].strip()
+                continue
+            m = re.match(r"^-\s+\*\*(.+?)\*\*[:\s]*(.*)", line)
+            if not m:
+                continue
+            raw_term, raw_def = m.group(1).strip(), m.group(2).strip()
+            irdai = "[IRDAI]" in raw_def or "[IRDAI]" in raw_term
+            term = re.sub(r"\[IRDAI\]\s*", "", raw_term).strip(" :")
+            definition = re.sub(r"\*\*", "", raw_def).replace("[IRDAI]", "").strip()
+            self.glossary_entries.append({
+                "term": term,
+                "definition": definition,
+                "section": current_section,
+                "irdai_regulated": irdai,
+                "source": "docs/glossary.md",
+            })
 
     def _verify_referential_integrity(self):
-        """Verifies integrity between products, riders, funds, and advisors."""
+        """Verifies integrity between products, riders, funds, advisors, and goals."""
         for pid, prod in self.products.items():
-            for rider_id in prod.get("riders_allowed", []):
+            for rider_id in prod.get("riders_allowed", []) or []:
                 if rider_id not in self.riders:
                     logger.warning(f"Product {pid} references unknown rider {rider_id}")
-            for fund_id in prod.get("ulip_fund_ids", []):
+            for fund_id in prod.get("ulip_fund_ids", []) or []:
                 if fund_id not in self.ulip_funds:
                     logger.warning(f"Product {pid} references unknown ULIP fund {fund_id}")
 
@@ -411,7 +460,54 @@ class DataLoader:
             if aid not in self.advisors:
                 logger.warning(f"Slot {slot['slot_id']} references unknown advisor {aid}")
 
+    def _build_validation_report(self):
+        json_ids = set(self.products.keys())
+        csv_ids = set(self.products_csv_ids)
+        json_profile_ids = {p.get("profile_id") for p in self.customer_profiles if p.get("profile_id")}
+        csv_profile_ids = {p.get("profile_id") for p in self.customer_profiles_csv if p.get("profile_id")}
+        goal_profile_ids = {g.get("profile_id") for g in self.customer_goals if g.get("profile_id")}
+        nested_goal_ids = set()
+        nested_goal_count = 0
+        for profile in self.customer_profiles:
+            for g in profile.get("goals") or []:
+                nested_goal_count += 1
+                if g.get("goal_id"):
+                    nested_goal_ids.add(g["goal_id"])
+        csv_goal_ids = {g.get("goal_id") for g in self.customer_goals if g.get("goal_id")}
+        orphan_goals = sorted(pid for pid in goal_profile_ids if pid not in json_profile_ids)
+        self.validation_report = {
+            "products_json_count": len(json_ids),
+            "products_csv_count": len(csv_ids),
+            "products_id_parity": json_ids == csv_ids,
+            "products_only_in_json": sorted(json_ids - csv_ids),
+            "products_only_in_csv": sorted(csv_ids - json_ids),
+            "profiles_json_count": len(self.customer_profiles),
+            "profiles_csv_count": len(self.customer_profiles_csv),
+            "profiles_id_parity": json_profile_ids == csv_profile_ids,
+            "goals_csv_count": len(self.customer_goals),
+            "goals_nested_in_json_count": nested_goal_count,
+            "goal_ids_csv_vs_nested_parity": csv_goal_ids == nested_goal_ids,
+            "orphan_goal_profile_ids": orphan_goals[:20],
+            "notes": [
+                "JSON product catalogue is the runtime source; CSV is used for independent ID reconciliation.",
+                "Nested customer JSON goals are used for demo profile loading; customer_goals.csv is the goal-level source and is not added on top of nested goals.",
+                "Saffron product rules are fictional. Glossary IRDAI citations are regulatory explanations, not product claims.",
+            ],
+        }
+
     # Public Query Helpers
+    @staticmethod
+    def derive_premium_paying_term(payment_option: str, policy_term: int) -> int:
+        option = (payment_option or "regular").strip().lower()
+        if option == "single":
+            return 1
+        if option.startswith("limited_"):
+            try:
+                return int(option.split("_")[1])
+            except (IndexError, ValueError):
+                return int(policy_term)
+        return int(policy_term)
+
     def get_rate(
         self,
         product_id: str,
@@ -419,12 +515,17 @@ class DataLoader:
         entry_age: int,
         policy_term: int,
         gender: str,
-        smoker_status: str
+        smoker_status: str,
+        premium_paying_term_years: Optional[int] = None,
     ) -> Optional[float]:
-        """Look up the authoritative premium rate per ₹1,000 Sum Assured."""
+        """Look up the authoritative premium rate per ₹1,000 Sum Assured. Missing rows are not approximated."""
+        ppt = premium_paying_term_years
+        if ppt is None:
+            ppt = self.derive_premium_paying_term(payment_option, policy_term)
         key = (
             product_id.strip(),
             payment_option.strip(),
+            int(ppt),
             int(entry_age),
             int(policy_term),
             gender.strip().lower(),
@@ -432,10 +533,10 @@ class DataLoader:
         )
         return self.premium_rates.get(key)
 
-    def get_ulip_mortality_rate(self, attained_age: int, gender: str, smoker_status: str) -> float:
-        """Lookup monthly mortality charge per ₹1,000 sum at risk."""
+    def get_ulip_mortality_rate(self, attained_age: int, gender: str, smoker_status: str) -> Optional[float]:
+        """Lookup annual mortality charge per ₹1,000 sum at risk. Returns None if the combination is absent."""
         key = (int(attained_age), gender.strip().lower(), smoker_status.strip().lower())
-        return self.ulip_mortality.get(key, 0.5)
+        return self.ulip_mortality.get(key)
 
     def get_diagnostics(self) -> Dict[str, Any]:
         """Returns loaded file diagnostics and counts."""
