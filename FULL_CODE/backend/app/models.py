@@ -118,11 +118,14 @@ class UserAccount(Base):
 class CustomerProfileRecord(Base):
     """
     Imported dataset customer profiles stored in database.
-    Separated from user_accounts until explicitly registered/linked.
+    Contains profile attributes as well as assigned demo login credentials.
     """
     __tablename__ = "customer_profiles"
 
     profile_id = Column(String(64), primary_key=True, index=True)
+    user_id = Column(String(64), index=True, nullable=True)
+    email = Column(String(128), nullable=True)
+    default_password = Column(String(64), nullable=True)
     full_name = Column(String(128), nullable=False)
     age = Column(Integer, nullable=False)
     gender = Column(String(16), nullable=False)
@@ -133,8 +136,8 @@ class CustomerProfileRecord(Base):
     annual_income_inr = Column(Float, default=0.0)
     monthly_household_expenses_inr = Column(Float, default=0.0)
     marital_status = Column(String(32), default="married")
-    record_source = Column(String(64), default="dataset_b2_synthetic")  # "dataset_b2_synthetic", "registered_user"
-    import_status = Column(String(32), default="imported")             # "imported", "verified", "linked"
+    record_source = Column(String(64), default="dataset_b2_synthetic")
+    import_status = Column(String(32), default="imported")
     has_assessment = Column(Boolean, default=True)
     raw_profile_json = Column(Text, nullable=False)
     created_at = Column(DateTime, default=datetime.datetime.utcnow)

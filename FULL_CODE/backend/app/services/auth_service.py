@@ -25,3 +25,4 @@ def verify_password(password: str, hashed: str, salt: str) -> bool:
     """
     check_hash, _ = hash_password(password, salt)
     return secrets.compare_digest(check_hash, hashed)
+

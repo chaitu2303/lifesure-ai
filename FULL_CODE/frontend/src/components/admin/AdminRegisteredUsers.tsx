@@ -302,6 +302,29 @@ export const AdminRegisteredUsers: React.FC<AdminRegisteredUsersProps> = ({ admi
               {/* Profile Details if dataset member */}
               {selectedUser.profile_info && (
                 <div className="space-y-4">
+                  {/* Credentials block for demo testing */}
+                  <div className="p-4 bg-blue-50/70 border border-blue-200 rounded-xl space-y-2 text-xs">
+                    <span className="text-[10px] font-mono uppercase text-blue-800 font-bold block">
+                      Dataset Customer Assigned Demo Credentials
+                    </span>
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                      <div>
+                        <span className="text-slate-500 block text-[10px] font-mono">User ID / Username:</span>
+                        <code className="text-blue-900 font-mono font-bold">{selectedUser.profile_info.user_id}</code>
+                      </div>
+                      <div>
+                        <span className="text-slate-500 block text-[10px] font-mono">Default Demo Password:</span>
+                        <code className="text-blue-900 font-mono font-bold bg-white px-1.5 py-0.5 rounded border border-blue-200">
+                          {selectedUser.profile_info.default_password}
+                        </code>
+                      </div>
+                      <div>
+                        <span className="text-slate-500 block text-[10px] font-mono">Registered Email:</span>
+                        <span className="text-slate-700 truncate block">{selectedUser.profile_info.email}</span>
+                      </div>
+                    </div>
+                  </div>
+
                   <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 text-xs">
                     <div className="p-3 bg-slate-50 rounded-lg">
                       <span className="text-[10px] font-mono text-slate-400 block">Annual Income</span>
@@ -353,3 +376,4 @@ export const AdminRegisteredUsers: React.FC<AdminRegisteredUsersProps> = ({ admi
     </div>
   );
 };
+

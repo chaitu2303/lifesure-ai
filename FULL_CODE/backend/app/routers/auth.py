@@ -127,3 +127,4 @@ def register_customer(payload: RegisterRequest, db: Session = Depends(get_db)):
     db.commit()
 
     return {"status": "success", "message": "Customer account registered successfully."}
+

@@ -254,9 +254,10 @@ def get_registered_users(
     imported_list = [
         {
             "id": p.profile_id,
-            "user_id": p.profile_id,
+            "user_id": p.user_id or p.profile_id,
             "full_name": p.full_name,
-            "email": None,  # Original dataset does not contain email
+            "email": p.email or f"{p.profile_id.lower()}@lifewise.demo",
+            "default_password": p.default_password or f"Customer@{p.profile_id.split('-')[-1][:4]}",
             "age": p.age,
             "city": p.city,
             "city_tier": p.city_tier,
@@ -327,6 +328,9 @@ def get_user_detail_read_only(
     if customer_prof:
         response_data["profile_info"] = {
             "profile_id": customer_prof.profile_id,
+            "user_id": customer_prof.user_id or customer_prof.profile_id,
+            "email": customer_prof.email or f"{customer_prof.profile_id.lower()}@lifewise.demo",
+            "default_password": customer_prof.default_password or f"Customer@{customer_prof.profile_id.split('-')[-1][:4]}",
             "full_name": customer_prof.full_name,
             "age": customer_prof.age,
             "gender": customer_prof.gender,
