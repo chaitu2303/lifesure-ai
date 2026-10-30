@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { MessageSquare, X, Send, Bot, User, Sparkles } from 'lucide-react';
 import { api } from '../../services/api';
 import { ChatMessage } from '../../types';
+import { MarkdownRenderer } from '../common/MarkdownRenderer';
 
 interface ChatbotProps {
   isOpen: boolean;
@@ -110,7 +111,11 @@ export const AdvisoryChatbot: React.FC<ChatbotProps> = ({ isOpen, onClose }) => 
                   : 'bg-white border border-[#E6E4DF] text-[#0B132B] shadow-xs'
               }`}
             >
-              <p className="whitespace-pre-line">{msg.text}</p>
+              {msg.sender === 'user' ? (
+                <p className="whitespace-pre-line">{msg.text}</p>
+              ) : (
+                <MarkdownRenderer content={msg.text} className="text-[#0B132B]" />
+              )}
 
               {/* Follow-up question chips */}
               {msg.suggested_followups && msg.suggested_followups.length > 0 && (

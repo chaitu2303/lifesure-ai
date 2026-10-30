@@ -12,6 +12,7 @@ from app.routers import (
     advisory,
     appointments,
     admin,
+    customers,
 )
 
 app = FastAPI(
@@ -147,3 +148,4 @@ app.include_router(products.router, prefix=settings.API_PREFIX)
 app.include_router(advisory.router, prefix=settings.API_PREFIX)
 app.include_router(appointments.router, prefix=settings.API_PREFIX)
 app.include_router(admin.router, prefix=settings.API_PREFIX)
+app.include_router(customers.router, prefix=settings.API_PREFIX)

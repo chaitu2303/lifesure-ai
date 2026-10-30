@@ -396,4 +396,23 @@ export const api = {
     }
     return res.json();
   },
+
+  // Customer Profiles
+  getCustomers: async (limit: number = 20): Promise<any[]> => {
+    try {
+      const res = await fetch(`${API_BASE_URL}/customers?limit=${limit}`);
+      if (!res.ok) return [];
+      return res.json();
+    } catch {
+      return [];
+    }
+  },
+
+  getCustomerProfile: async (profileId: string): Promise<any> => {
+    const res = await fetch(`${API_BASE_URL}/customers/${profileId}`);
+    if (!res.ok) {
+      throw new Error(`Failed to fetch customer profile ${profileId}`);
+    }
+    return res.json();
+  },
 };

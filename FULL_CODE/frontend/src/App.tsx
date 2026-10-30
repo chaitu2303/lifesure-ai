@@ -15,6 +15,8 @@ import { ProductRecommendations } from './components/recommendations/ProductReco
 import { WhatIfSimulator } from './components/simulation/WhatIfSimulator';
 import { CustomerDashboard } from './components/dashboard/CustomerDashboard';
 import { AdminDashboard } from './components/admin/AdminDashboard';
+import { CustomerSettings } from './components/settings/CustomerSettings';
+import { AccountSwitcherModal } from './components/auth/AccountSwitcherModal';
 import { AdvisoryChatbot } from './components/advisory/AdvisoryChatbot';
 import { ConsultationBookingModal } from './components/advisory/ConsultationBookingModal';
 import { SimulatedVideoRoom } from './components/advisory/SimulatedVideoRoom';
@@ -67,6 +69,7 @@ export function App() {
   // Modals & Chatbot state
   const [isChatOpen, setIsChatOpen] = useState<boolean>(false);
   const [isBookingOpen, setIsBookingOpen] = useState<boolean>(false);
+  const [isAccountModalOpen, setIsAccountModalOpen] = useState<boolean>(false);
 
   // Video Room state
   const [videoRoomState, setVideoRoomState] = useState<{
@@ -137,7 +140,8 @@ export function App() {
     products: { title: 'Recommended Products & Comparison', indicator: '4/4' },
     simulator: { title: 'What-If Simulator', indicator: 'Interactive' },
     dashboard: { title: 'Customer Dashboard', indicator: 'Live' },
-    admin: { title: 'Governance & Settings', indicator: 'Admin' },
+    settings: { title: 'Account Settings & Preferences', indicator: 'Preferences' },
+    admin: { title: 'Governance & Platform Admin', indicator: 'Admin' },
   };
 
   return (
@@ -240,6 +244,12 @@ export function App() {
             />
           )}
 
+          {currentView === 'settings' && (
+            <CustomerSettings
+              onOpenAccountSwitcher={() => setIsAccountModalOpen(true)}
+            />
+          )}
+
           {currentView === 'admin' && (
             <AdminDashboard />
           )}
@@ -272,6 +282,13 @@ export function App() {
         isOpen={isBookingOpen}
         onClose={() => setIsBookingOpen(false)}
         onJoinVideoRoom={handleOpenVideoRoom}
+      />
+
+      {/* Account Switcher Modal */}
+      <AccountSwitcherModal
+        isOpen={isAccountModalOpen}
+        onClose={() => setIsAccountModalOpen(false)}
+        onAdminSelect={() => navigateTo('admin')}
       />
 
     </div>

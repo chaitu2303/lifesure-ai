@@ -14,8 +14,13 @@ import {
   ChevronRight, 
   Sparkles,
   Search,
-  UserCheck
+  UserCheck,
+  Shield,
+  LogOut,
+  User
 } from 'lucide-react';
+import { useAuth } from '../../context/AuthContext';
+import { AccountSwitcherModal } from '../auth/AccountSwitcherModal';
 
 interface AppShellProps {
   currentView: string;
@@ -37,6 +42,8 @@ export const AppShell: React.FC<AppShellProps> = ({
   children,
 }) => {
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
+  const [isSwitcherOpen, setIsSwitcherOpen] = useState(false);
+  const { currentUser, isAdmin, logout } = useAuth();
 
   const sidebarItems = [
     { id: 'dashboard', label: 'Overview', icon: LayoutDashboard },
@@ -45,7 +52,8 @@ export const AppShell: React.FC<AppShellProps> = ({
     { id: 'products', label: 'Products', icon: Layers },
     { id: 'simulator', label: 'Simulator', icon: Sliders },
     { id: 'consultation', label: 'Consultation', icon: Video },
-    { id: 'admin', label: 'Settings', icon: Settings },
+    { id: 'settings', label: 'Settings', icon: Settings },
+    ...(isAdmin ? [{ id: 'admin', label: 'Governance (Admin)', icon: Shield, badge: 'Admin' }] : []),
   ];
 
   const handleSidebarClick = (id: string) => {
@@ -121,26 +129,48 @@ export const AppShell: React.FC<AppShellProps> = ({
         {/* Bottom User Profile Card & Back to Website */}
         <div className="p-3 border-t border-slate-800 space-y-2">
           
-          <div className="p-2.5 rounded-xl bg-slate-900/90 border border-slate-800 flex items-center justify-between">
+          <div 
+            onClick={() => setIsSwitcherOpen(true)}
+            className="p-2.5 rounded-xl bg-slate-900/90 border border-slate-800 hover:border-slate-700 flex items-center justify-between cursor-pointer group transition-all"
+            title="Click to switch customer account or admin"
+          >
             <div className="flex items-center space-x-2.5">
-              <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-blue-600 to-indigo-600 flex items-center justify-center text-white font-bold text-xs">
-                C
+              <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs text-white ${
+                isAdmin ? 'bg-amber-600' : 'bg-gradient-to-tr from-blue-600 to-indigo-600'
+              }`}>
+                {isAdmin ? 'A' : (currentUser?.full_name?.charAt(0) || 'C')}
               </div>
               <div className="text-left">
-                <div className="text-xs font-semibold text-white leading-none">Chaitanya</div>
-                <div className="text-[10px] text-slate-400 font-mono mt-0.5">Family Account</div>
+                <div className="text-xs font-semibold text-white leading-none group-hover:text-blue-400 transition-colors">
+                  {isAdmin ? 'System Admin' : (currentUser?.full_name || 'Chaitanya Verma')}
+                </div>
+                <div className="text-[10px] text-slate-400 font-mono mt-0.5">
+                  {isAdmin ? 'Governance Mode' : `${currentUser?.city || 'Bengaluru'} • Switch`}
+                </div>
               </div>
             </div>
-            <span className="w-2 h-2 rounded-full bg-emerald-400" />
+            <span className={`w-2 h-2 rounded-full ${isAdmin ? 'bg-amber-400 animate-pulse' : 'bg-emerald-400'}`} />
           </div>
 
-          <button
-            onClick={() => onNavigate('landing')}
-            className="w-full flex items-center justify-center space-x-2 py-2 px-3 rounded-lg text-xs font-medium text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
-          >
-            <Home className="w-3.5 h-3.5" />
-            <span>Return to Home</span>
-          </button>
+          <div className="flex items-center space-x-1">
+            <button
+              onClick={() => onNavigate('landing')}
+              className="flex-1 flex items-center justify-center space-x-1.5 py-1.5 px-2 rounded-lg text-xs font-medium text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
+            >
+              <Home className="w-3.5 h-3.5" />
+              <span>Home</span>
+            </button>
+            <button
+              onClick={() => {
+                logout();
+                onNavigate('landing');
+              }}
+              className="flex items-center justify-center p-1.5 rounded-lg text-xs font-medium text-red-400 hover:text-red-300 hover:bg-red-950/40 transition-colors"
+              title="Sign Out"
+            >
+              <LogOut className="w-3.5 h-3.5" />
+            </button>
+          </div>
         </div>
 
       </aside>
@@ -256,12 +286,16 @@ export const AppShell: React.FC<AppShellProps> = ({
               <span className="hidden sm:inline">Home</span>
             </button>
 
-            <div className="flex items-center space-x-2 pl-2 border-l border-slate-200">
-              <div className="w-7 h-7 rounded-full bg-slate-200 flex items-center justify-center text-xs font-bold text-slate-700">
-                C
+            <div 
+              onClick={() => setIsSwitcherOpen(true)}
+              className="flex items-center space-x-2 pl-2 border-l border-slate-200 cursor-pointer hover:opacity-80 transition-opacity"
+              title="Switch user account"
+            >
+              <div className="w-7 h-7 rounded-full bg-blue-100 border border-blue-300 flex items-center justify-center text-xs font-bold text-blue-700">
+                {isAdmin ? 'A' : (currentUser?.full_name?.charAt(0) || 'C')}
               </div>
               <span className="text-xs font-semibold text-[#0B132B] hidden md:inline">
-                Chaitanya
+                {isAdmin ? 'Admin' : (currentUser?.full_name || 'Chaitanya')}
               </span>
             </div>
           </div>
@@ -272,6 +306,13 @@ export const AppShell: React.FC<AppShellProps> = ({
         <main className="flex-1 p-4 sm:p-6 lg:p-8 max-w-7xl w-full mx-auto">
           {children}
         </main>
+
+        {/* Account Switcher & Admin Auth Modal */}
+        <AccountSwitcherModal
+          isOpen={isSwitcherOpen}
+          onClose={() => setIsSwitcherOpen(false)}
+          onAdminSelect={() => onNavigate('admin')}
+        />
 
       </div>
 
