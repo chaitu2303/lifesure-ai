@@ -83,18 +83,16 @@ export const Navbar: React.FC<NavbarProps> = ({
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-20">
             
-            {/* Logo: Stylized Leaf / Shield + Brand */}
+            {/* Logo: Brand Shield + Identity */}
             <div 
               onClick={() => handleNavClick('landing')}
               className="flex items-center space-x-3 cursor-pointer group select-none"
             >
-              <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-[#1D4ED8] to-[#2563EB] flex items-center justify-center text-white shadow-md shadow-blue-500/20 group-hover:scale-105 transition-transform">
-                <svg className="w-6 h-6 text-white" viewBox="0 0 24 24" fill="currentColor">
-                  <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.4z" opacity="0.3"/>
-                  <path d="M12 3C7.03 3 3 7.03 3 12c0 2.48 1.01 4.73 2.65 6.35L12 12V3z" fill="white" opacity="0.9"/>
-                  <path d="M12 12l6.35 6.35C19.99 16.73 21 14.48 21 12c0-4.97-4.03-9-9-9v9z" fill="#93C5FD"/>
-                </svg>
-              </div>
+              <img 
+                src="/logo.png" 
+                alt="LifeWise Logo" 
+                className="w-11 h-11 rounded-xl object-contain shadow-sm group-hover:scale-105 transition-transform" 
+              />
               <div className="flex flex-col">
                 <div className="flex items-baseline space-x-1">
                   <span className="font-serif text-2xl font-bold tracking-tight text-[#0B132B]">
@@ -102,7 +100,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                   </span>
                 </div>
                 <span className="text-[9px] font-sans font-medium uppercase tracking-[0.18em] text-slate-500 -mt-1">
-                  Financial Protection
+                  Plan Today &bull; Protect Tomorrow
                 </span>
               </div>
             </div>
