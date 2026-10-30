@@ -198,7 +198,7 @@ The application integrates the 10 synthetic datasets from the B2 problem pack:
 
 ### 1. Backend Setup
 ```powershell
-cd E:\TalentAP\backend
+cd E:\TalentAP\FULL_CODE\backend
 
 # Install dependencies
 pip install -r requirements.txt
@@ -210,7 +210,7 @@ python run.py
 
 ### 2. Frontend Setup
 ```powershell
-cd E:\TalentAP\frontend
+cd E:\TalentAP\FULL_CODE\frontend
 
 # Install dependencies (if not already installed)
 npm install
@@ -248,22 +248,22 @@ Expected output:
 ## 🧪 Testing & Code Quality
 
 ### Automated Backend Tests
-Run the comprehensive 43-test suite:
+Run the comprehensive 47-test suite:
 ```powershell
-cd E:\TalentAP\backend
-python -m pytest
+cd E:\TalentAP\FULL_CODE\backend
+python -m pytest tests/ -q
 ```
-Result: **43 passed out of 43 tests (100% pass rate in ~1.01s)**:
+Result: **47 passed out of 47 tests (100% pass rate)**:
 - `test_b2_hackathon_comprehensive.py`: 11 tests covering data loading, Decimal rate math, official Section 6.1 worked example (PRD-X4CBUF ₹1,045/mo), under/over-insured customers, no-income applicant rules, and slot filtering.
 - `test_edge_cases.py`: 13 tests covering zero income with/without dependents, loan debt without dependents, existing sufficient coverage, budget constraints, missing premium rate combinations, invalid age bounds, invalid tenures, underwriting income multiples, minimal profile inputs, and duplicate/expired appointment slots.
 - `test_calculation_engine.py`: 6 tests for Capital Needs Analysis, Fisher discounting, liabilities, and zero-lower-bound.
 - `test_recommendation_engine.py`: 3 tests for product matching across all 4 categories.
 - `test_simulation.py`: 3 tests for interactive what-if parameters and budget variance.
-- `test_api.py`: 7 tests covering all FastAPI endpoints and authorization.
+- `test_api.py`: 11 tests covering all FastAPI endpoints (including appointment cancel/reschedule, customers) and authorization.
 
 ### Automated Frontend Type Checking & Build
 ```powershell
-cd E:\TalentAP\frontend
+cd E:\TalentAP\FULL_CODE\frontend
 npm run build
 ```
 Result: **Clean TypeScript compilation (`tsc`) and production bundle generation in 1.75s** with 0 errors.
