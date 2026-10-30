@@ -35,6 +35,10 @@ FULL_CODE/*.db
 .env.local
 .env.*.local
 *.env
+admin_artifacts/
+**/admin_artifacts/
+*.xlsx
+demo_customer_credentials.xlsx
 
 # Hackathon Synthetic Datasets (Excluded from submission ZIP per official rules)
 Datasets/

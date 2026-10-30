@@ -430,6 +430,19 @@ export const api = {
     return res.json();
   },
 
+  register: async (payload: { user_id: string; password: string; full_name: string; email?: string }): Promise<any> => {
+    const res = await fetch(`${API_BASE_URL}/auth/register`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({ detail: 'Registration failed' }));
+      throw new Error(err.detail || 'Registration failed');
+    }
+    return res.json();
+  },
+
   changePassword: async (payload: { user_id: string; old_password: string; new_password: string }): Promise<any> => {
     const res = await fetch(`${API_BASE_URL}/auth/change-password`, {
       method: 'POST',

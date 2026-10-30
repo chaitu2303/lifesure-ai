@@ -14,7 +14,9 @@ import {
   Filter,
   User,
   Star,
-  AlertCircle
+  AlertCircle,
+  BadgeCheck,
+  Check
 } from 'lucide-react';
 import { Appointment, Advisor, AvailableSlot } from '../../types';
 import { api } from '../../services/api';
@@ -38,7 +40,6 @@ export const ConsultationBookingModal: React.FC<BookingModalProps> = ({
   const [consultationMode, setConsultationMode] = useState<'video' | 'phone'>('video');
 
   // Filters
-  const [languageFilter, setLanguageFilter] = useState<string>('all');
   const [specialtyFilter, setSpecialtyFilter] = useState<string>('all');
 
   // Client info
@@ -79,7 +80,6 @@ export const ConsultationBookingModal: React.FC<BookingModalProps> = ({
         const available = (data || []).filter((s) => s.is_available);
         setSlots(available);
         if (available.length > 0) {
-          // Select first available date
           const firstDate = available[0].date_str;
           setSelectedDate(firstDate);
           setSelectedSlotId(available[0].slot_id);
@@ -98,24 +98,19 @@ export const ConsultationBookingModal: React.FC<BookingModalProps> = ({
   const slotsForDate = slots.filter((s) => s.date_str === selectedDate);
   const currentSlot = slots.find((s) => s.slot_id === selectedSlotId);
 
-  // Filtered advisors list
   const filteredAdvisors = advisors.filter((adv) => {
-    if (specialtyFilter !== 'all') {
-      const hasSpecialty = adv.specialties?.some((s) =>
-        s.toLowerCase().includes(specialtyFilter.toLowerCase())
-      );
-      if (!hasSpecialty) return false;
-    }
-    return true;
+    if (specialtyFilter === 'all') return true;
+    return adv.specialties?.some((s) => s.toLowerCase().includes(specialtyFilter.toLowerCase()));
   });
 
   const handleConfirmBooking = async () => {
     if (!currentSlot) {
-      setErrorMessage('Please select an available date and appointment slot.');
+      setErrorMessage('Please choose an available appointment date and time slot.');
       return;
     }
+
     if (!clientName.trim() || !clientEmail.trim() || !clientPhone.trim()) {
-      setErrorMessage('Please enter your full name, email address, and phone number.');
+      setErrorMessage('Please provide your name, email, and contact number.');
       return;
     }
 
@@ -135,12 +130,11 @@ export const ConsultationBookingModal: React.FC<BookingModalProps> = ({
       setConfirmedAppt(appt);
     } catch (err: any) {
       console.warn('Booking API call:', err);
-      // Fallback appointment code
       const fallbackAppt: Appointment = {
         id: Date.now(),
         appointment_code: `LW-APT-${Math.floor(100000 + Math.random() * 900000)}`,
         advisor_id: selectedAdvisorId,
-        advisor_name: currentAdvisor?.name || 'Priya Sharma',
+        advisor_name: currentAdvisor?.name || 'Farah Siddiqui',
         client_name: clientName,
         client_email: clientEmail,
         client_phone: clientPhone,
@@ -157,52 +151,55 @@ export const ConsultationBookingModal: React.FC<BookingModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
-      <div className="bg-white rounded-3xl max-w-3xl w-full p-6 sm:p-8 space-y-6 shadow-2xl border border-slate-200 animate-in zoom-in-95 duration-150 max-h-[92vh] overflow-y-auto">
+    <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-3 sm:p-5 animate-in fade-in duration-200">
+      <div className="bg-[#FAF9F5] rounded-3xl max-w-4xl w-full p-6 sm:p-8 space-y-6 shadow-2xl border border-[#E6E4DF] animate-in zoom-in-95 duration-150 max-h-[92vh] overflow-y-auto flex flex-col text-[#0B132B]">
         
         {/* Modal Header */}
-        <div className="flex items-center justify-between border-b border-slate-100 pb-4">
-          <div className="flex items-center space-x-3">
-            <div className="w-10 h-10 rounded-full bg-blue-50 border border-blue-200 text-[#1D4ED8] flex items-center justify-center font-bold text-sm">
-              <User className="w-5 h-5" />
+        <div className="flex items-center justify-between border-b border-[#E6E4DF] pb-4">
+          <div className="flex items-center space-x-3.5">
+            <div className="w-11 h-11 rounded-2xl bg-[#1D4ED8] text-white flex items-center justify-center font-bold text-sm shadow-md shadow-blue-500/20">
+              <Calendar className="w-5 h-5" />
             </div>
             <div>
               <div className="flex items-center space-x-2">
-                <h3 className="font-serif text-xl font-bold text-[#0B132B]">
-                  Schedule a Consultation
+                <h3 className="font-serif text-xl sm:text-2xl font-bold tracking-tight text-[#0B132B]">
+                  Schedule Fiduciary Consultation
                 </h3>
-                <span className="px-2 py-0.5 rounded-full bg-blue-50 text-[#1D4ED8] text-[10px] font-mono font-bold">
-                  Certified Fiduciary
+                <span className="hidden sm:inline-flex px-2.5 py-0.5 rounded-full bg-blue-100 text-[#1D4ED8] text-[10px] font-mono font-bold items-center space-x-1">
+                  <BadgeCheck className="w-3 h-3" />
+                  <span>SEBI &amp; CFP® Verified</span>
                 </span>
               </div>
-              <p className="text-xs text-slate-500">
-                15 SEBI-registered &amp; CFP® Advisors &bull; Zero Commission Incentives
+              <p className="text-xs text-slate-500 mt-0.5">
+                Independent, fee-only advisory with zero product commissions &bull; 100% fiduciary duty
               </p>
             </div>
           </div>
           <button
             onClick={onClose}
-            className="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100"
+            className="p-2 rounded-full text-slate-400 hover:text-slate-700 hover:bg-slate-200/60 transition-colors"
+            title="Close"
           >
             <X className="w-5 h-5" />
           </button>
         </div>
 
         {errorMessage && (
-          <div className="p-3 rounded-xl bg-red-50 border border-red-200 text-red-700 text-xs flex items-center space-x-2">
+          <div className="p-3.5 rounded-xl bg-red-50 border border-red-200 text-red-700 text-xs flex items-center space-x-2">
             <AlertCircle className="w-4 h-4 shrink-0" />
             <span>{errorMessage}</span>
           </div>
         )}
 
         {!confirmedAppt ? (
-          <div className="space-y-6">
+          <div className="space-y-6 flex-1">
             
             {/* Step 1: Select Advisor */}
             <div className="space-y-3">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                <label className="text-xs font-bold text-[#0B132B] font-mono uppercase tracking-wider flex items-center space-x-1.5">
-                  <span>1. Choose Certified Advisor</span>
+                <label className="text-xs font-bold text-[#0B132B] font-mono uppercase tracking-wider flex items-center space-x-2">
+                  <span className="w-5 h-5 rounded-full bg-[#0B132B] text-white flex items-center justify-center text-[10px]">1</span>
+                  <span>Choose Certified Advisor</span>
                   <span className="text-slate-400 font-normal">({filteredAdvisors.length} available)</span>
                 </label>
 
@@ -212,7 +209,7 @@ export const ConsultationBookingModal: React.FC<BookingModalProps> = ({
                   <select
                     value={specialtyFilter}
                     onChange={(e) => setSpecialtyFilter(e.target.value)}
-                    className="px-2.5 py-1 rounded-lg border border-slate-200 text-xs text-slate-700 bg-white outline-none"
+                    className="px-3 py-1.5 rounded-xl border border-slate-200 text-xs text-slate-700 bg-white outline-none focus:border-[#1D4ED8]"
                   >
                     <option value="all">All Specialisations</option>
                     <option value="Term">Term Protection</option>
@@ -231,22 +228,45 @@ export const ConsultationBookingModal: React.FC<BookingModalProps> = ({
                     <div
                       key={adv.id}
                       onClick={() => setSelectedAdvisorId(adv.id)}
-                      className={`p-3 rounded-2xl border text-left cursor-pointer transition-all ${
+                      className={`p-3.5 rounded-2xl border text-left cursor-pointer transition-all flex flex-col justify-between relative ${
                         isSelected
-                          ? 'border-[#1D4ED8] bg-blue-50/60 shadow-xs'
-                          : 'border-slate-200 bg-white hover:border-slate-300'
+                          ? 'border-[#1D4ED8] bg-white ring-2 ring-[#1D4ED8]/20 shadow-md'
+                          : 'border-slate-200 bg-white/70 hover:bg-white hover:border-slate-300'
                       }`}
                     >
-                      <div className="flex items-center justify-between mb-1">
-                        <span className="font-bold text-xs text-[#0B132B] truncate">{adv.name}</span>
-                        <div className="flex items-center space-x-0.5 text-amber-500 text-[10px]">
-                          <Star className="w-3 h-3 fill-current" />
-                          <span className="font-bold">{adv.rating}</span>
+                      {isSelected && (
+                        <div className="absolute top-2.5 right-2.5 w-5 h-5 rounded-full bg-[#1D4ED8] text-white flex items-center justify-center">
+                          <Check className="w-3 h-3" />
+                        </div>
+                      )}
+                      <div>
+                        <div className="flex items-center space-x-2.5 mb-1.5">
+                          {adv.avatar_url ? (
+                            <img 
+                              src={adv.avatar_url} 
+                              alt={adv.name} 
+                              className="w-9 h-9 rounded-full object-cover border border-slate-200" 
+                            />
+                          ) : (
+                            <div className="w-9 h-9 rounded-full bg-blue-100 text-[#1D4ED8] flex items-center justify-center font-bold text-xs">
+                              {adv.name.charAt(0)}
+                            </div>
+                          )}
+                          <div className="pr-4 overflow-hidden">
+                            <span className="font-bold text-xs text-[#0B132B] truncate block">{adv.name}</span>
+                            <div className="text-[10px] text-slate-500 truncate">{adv.title}</div>
+                          </div>
+                        </div>
+                        <div className="text-[10px] text-slate-500 font-mono mt-2 bg-slate-50 py-1 px-2 rounded-lg border border-slate-100">
+                          {adv.experience_years} yrs exp &bull; {adv.specialties?.[0] || 'Life Cover'}
                         </div>
                       </div>
-                      <div className="text-[11px] text-slate-500 truncate">{adv.title}</div>
-                      <div className="text-[10px] text-slate-400 font-mono mt-1">
-                        {adv.experience_years} yrs exp &bull; {adv.specialties?.[0] || 'Life Cover'}
+                      <div className="mt-2.5 pt-2 border-t border-slate-100 flex items-center justify-between text-[11px]">
+                        <span className="text-slate-400 font-mono text-[10px]">{adv.credentials || 'CFP®'}</span>
+                        <div className="flex items-center space-x-1 text-amber-500">
+                          <Star className="w-3 h-3 fill-current" />
+                          <span className="font-bold text-slate-800 text-[11px]">{adv.rating}</span>
+                        </div>
                       </div>
                     </div>
                   );
@@ -255,120 +275,127 @@ export const ConsultationBookingModal: React.FC<BookingModalProps> = ({
             </div>
 
             {/* Step 2: Available Dates & Time Slots */}
-            <div className="grid grid-cols-1 md:grid-cols-12 gap-6 pt-3 border-t border-slate-100">
+            <div className="bg-white rounded-2xl border border-[#E6E4DF] p-4 sm:p-5 space-y-4">
               
-              {/* Dates Column (6 cols) */}
-              <div className="md:col-span-6 space-y-2">
-                <label className="text-xs font-bold text-[#0B132B] font-mono uppercase tracking-wider block">
-                  2. Select Consultation Date (Oct 29 – Nov 7, 2026)
-                </label>
-                {slotsLoading ? (
-                  <div className="text-xs text-slate-400 py-4 font-mono animate-pulse">
-                    Loading slots from advisor_slots.csv...
-                  </div>
-                ) : uniqueDates.length > 0 ? (
-                  <div className="grid grid-cols-2 gap-2">
-                    {uniqueDates.map((dateStr) => {
-                      const isSelected = selectedDate === dateStr;
-                      return (
-                        <button
-                          key={dateStr}
-                          type="button"
-                          onClick={() => {
-                            setSelectedDate(dateStr);
-                            const firstSlot = slots.find((s) => s.date_str === dateStr);
-                            if (firstSlot) setSelectedSlotId(firstSlot.slot_id);
-                          }}
-                          className={`py-2 px-3 rounded-xl text-xs font-mono font-semibold border transition-all text-left flex items-center justify-between ${
-                            isSelected
-                              ? 'bg-[#1D4ED8] text-white border-[#1D4ED8] shadow-xs'
-                              : 'bg-white text-slate-700 border-slate-200 hover:border-slate-300'
-                          }`}
-                        >
-                          <span>{dateStr}</span>
-                          <Calendar className="w-3.5 h-3.5 opacity-80" />
-                        </button>
-                      );
-                    })}
-                  </div>
-                ) : (
-                  <div className="text-xs text-slate-500 py-3">
-                    No future open slots found for this advisor.
-                  </div>
-                )}
+              <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
+                
+                {/* Dates Column (6 cols) */}
+                <div className="md:col-span-6 space-y-2.5">
+                  <label className="text-xs font-bold text-[#0B132B] font-mono uppercase tracking-wider flex items-center space-x-2">
+                    <span className="w-5 h-5 rounded-full bg-[#0B132B] text-white flex items-center justify-center text-[10px]">2</span>
+                    <span>Select Date</span>
+                  </label>
+                  {slotsLoading ? (
+                    <div className="text-xs text-slate-400 py-6 font-mono animate-pulse text-center">
+                      Loading available advisor slots...
+                    </div>
+                  ) : uniqueDates.length > 0 ? (
+                    <div className="grid grid-cols-2 gap-2 max-h-48 overflow-y-auto pr-1">
+                      {uniqueDates.map((dateStr) => {
+                        const isSelected = selectedDate === dateStr;
+                        return (
+                          <button
+                            key={dateStr}
+                            type="button"
+                            onClick={() => {
+                              setSelectedDate(dateStr);
+                              const firstSlot = slots.find((s) => s.date_str === dateStr);
+                              if (firstSlot) setSelectedSlotId(firstSlot.slot_id);
+                            }}
+                            className={`py-2.5 px-3 rounded-xl text-xs font-mono font-semibold border transition-all text-left flex items-center justify-between ${
+                              isSelected
+                                ? 'bg-[#1D4ED8] text-white border-[#1D4ED8] shadow-sm'
+                                : 'bg-[#FAF9F5] text-slate-700 border-slate-200 hover:border-slate-300'
+                            }`}
+                          >
+                            <span>{dateStr}</span>
+                            <Calendar className="w-3.5 h-3.5 opacity-80" />
+                          </button>
+                        );
+                      })}
+                    </div>
+                  ) : (
+                    <div className="text-xs text-slate-500 py-4 text-center">
+                      No open slots found for this advisor.
+                    </div>
+                  )}
+                </div>
+
+                {/* Time Slots Column (6 cols) */}
+                <div className="md:col-span-6 space-y-2.5">
+                  <label className="text-xs font-bold text-[#0B132B] font-mono uppercase tracking-wider flex items-center space-x-2">
+                    <span className="w-5 h-5 rounded-full bg-[#0B132B] text-white flex items-center justify-center text-[10px]">3</span>
+                    <span>30-Minute Time Slot</span>
+                  </label>
+                  {slotsForDate.length > 0 ? (
+                    <div className="grid grid-cols-2 gap-2 max-h-48 overflow-y-auto pr-1">
+                      {slotsForDate.map((slot) => {
+                        const isSelected = selectedSlotId === slot.slot_id;
+                        return (
+                          <button
+                            key={slot.slot_id}
+                            type="button"
+                            onClick={() => setSelectedSlotId(slot.slot_id)}
+                            className={`py-2 px-3 rounded-xl text-xs font-mono font-semibold border transition-all text-center ${
+                              isSelected
+                                ? 'bg-[#0B132B] text-white border-[#0B132B] shadow-sm'
+                                : 'bg-[#FAF9F5] text-slate-700 border-slate-200 hover:border-slate-300'
+                            }`}
+                          >
+                            {slot.time_str}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  ) : (
+                    <div className="text-xs text-slate-400 py-6 text-center">
+                      Select an available date on the left to view appointment times.
+                    </div>
+                  )}
+                </div>
+
               </div>
 
-              {/* Time Slots Column (6 cols) */}
-              <div className="md:col-span-6 space-y-2">
-                <label className="text-xs font-bold text-[#0B132B] font-mono uppercase tracking-wider block">
-                  3. Select 30-Minute Time Slot
-                </label>
-                {slotsForDate.length > 0 ? (
-                  <div className="grid grid-cols-2 gap-2 max-h-48 overflow-y-auto pr-1">
-                    {slotsForDate.map((slot) => {
-                      const isSelected = selectedSlotId === slot.slot_id;
-                      return (
-                        <button
-                          key={slot.slot_id}
-                          type="button"
-                          onClick={() => setSelectedSlotId(slot.slot_id)}
-                          className={`py-2 px-3 rounded-xl text-xs font-mono font-semibold border transition-all text-center ${
-                            isSelected
-                              ? 'bg-[#0B132B] text-white border-[#0B132B] shadow-xs'
-                              : 'bg-white text-slate-700 border-slate-200 hover:border-slate-300'
-                          }`}
-                        >
-                          {slot.time_str}
-                        </button>
-                      );
-                    })}
-                  </div>
-                ) : (
-                  <div className="text-xs text-slate-400 py-3">
-                    Select a date on the left to view available 30-minute intervals.
-                  </div>
-                )}
-
-                {/* Consultation Mode */}
-                <div className="pt-2">
-                  <span className="text-xs font-semibold text-slate-700 block mb-1.5">
-                    Consultation Format
-                  </span>
-                  <div className="grid grid-cols-2 gap-2">
-                    <button
-                      type="button"
-                      onClick={() => setConsultationMode('video')}
-                      className={`py-2 px-3 rounded-xl text-xs font-semibold flex items-center justify-center space-x-1.5 border transition-all ${
-                        consultationMode === 'video'
-                          ? 'bg-blue-50 border-[#1D4ED8] text-[#1D4ED8]'
-                          : 'bg-white border-slate-200 text-slate-600'
-                      }`}
-                    >
-                      <Video className="w-3.5 h-3.5" />
-                      <span>Video Consultation</span>
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setConsultationMode('phone')}
-                      className={`py-2 px-3 rounded-xl text-xs font-semibold flex items-center justify-center space-x-1.5 border transition-all ${
-                        consultationMode === 'phone'
-                          ? 'bg-blue-50 border-[#1D4ED8] text-[#1D4ED8]'
-                          : 'bg-white border-slate-200 text-slate-600'
-                      }`}
-                    >
-                      <Phone className="w-3.5 h-3.5" />
-                      <span>Phone Call</span>
-                    </button>
-                  </div>
+              {/* Consultation Format Selection */}
+              <div className="pt-3 border-t border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <span className="text-xs font-semibold text-slate-700">
+                  Preferred Consultation Mode:
+                </span>
+                <div className="grid grid-cols-2 gap-2 w-full sm:w-auto">
+                  <button
+                    type="button"
+                    onClick={() => setConsultationMode('video')}
+                    className={`py-2 px-4 rounded-xl text-xs font-semibold flex items-center justify-center space-x-2 border transition-all ${
+                      consultationMode === 'video'
+                        ? 'bg-blue-50 border-[#1D4ED8] text-[#1D4ED8] shadow-xs'
+                        : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'
+                    }`}
+                  >
+                    <Video className="w-3.5 h-3.5" />
+                    <span>HD Video Room</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setConsultationMode('phone')}
+                    className={`py-2 px-4 rounded-xl text-xs font-semibold flex items-center justify-center space-x-2 border transition-all ${
+                      consultationMode === 'phone'
+                        ? 'bg-blue-50 border-[#1D4ED8] text-[#1D4ED8] shadow-xs'
+                        : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'
+                    }`}
+                  >
+                    <Phone className="w-3.5 h-3.5" />
+                    <span>Phone Call</span>
+                  </button>
                 </div>
               </div>
 
             </div>
 
             {/* Client Info Inputs */}
-            <div className="space-y-3 pt-3 border-t border-slate-100">
-              <label className="text-xs font-bold text-[#0B132B] font-mono uppercase tracking-wider block">
-                4. Your Contact Details
+            <div className="space-y-3 pt-2">
+              <label className="text-xs font-bold text-[#0B132B] font-mono uppercase tracking-wider flex items-center space-x-2">
+                <span className="w-5 h-5 rounded-full bg-[#0B132B] text-white flex items-center justify-center text-[10px]">4</span>
+                <span>Your Contact Details</span>
               </label>
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 <input
@@ -376,21 +403,21 @@ export const ConsultationBookingModal: React.FC<BookingModalProps> = ({
                   placeholder="Full Name"
                   value={clientName}
                   onChange={(e) => setClientName(e.target.value)}
-                  className="px-3.5 py-2.5 rounded-xl border border-slate-200 text-xs outline-none focus:border-[#1D4ED8]"
+                  className="px-3.5 py-2.5 rounded-xl border border-slate-200 bg-white text-xs outline-none focus:border-[#1D4ED8] focus:ring-1 focus:ring-[#1D4ED8]"
                 />
                 <input
                   type="email"
                   placeholder="Email Address"
                   value={clientEmail}
                   onChange={(e) => setClientEmail(e.target.value)}
-                  className="px-3.5 py-2.5 rounded-xl border border-slate-200 text-xs outline-none focus:border-[#1D4ED8]"
+                  className="px-3.5 py-2.5 rounded-xl border border-slate-200 bg-white text-xs outline-none focus:border-[#1D4ED8] focus:ring-1 focus:ring-[#1D4ED8]"
                 />
                 <input
                   type="tel"
                   placeholder="Phone Number"
                   value={clientPhone}
                   onChange={(e) => setClientPhone(e.target.value)}
-                  className="px-3.5 py-2.5 rounded-xl border border-slate-200 text-xs outline-none focus:border-[#1D4ED8]"
+                  className="px-3.5 py-2.5 rounded-xl border border-slate-200 bg-white text-xs outline-none focus:border-[#1D4ED8] focus:ring-1 focus:ring-[#1D4ED8]"
                 />
               </div>
               <input
@@ -398,22 +425,16 @@ export const ConsultationBookingModal: React.FC<BookingModalProps> = ({
                 placeholder="Consultation Topic (e.g. Life Insurance Needs & Home Loan Coverage)"
                 value={topic}
                 onChange={(e) => setTopic(e.target.value)}
-                className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-xs outline-none focus:border-[#1D4ED8]"
+                className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 bg-white text-xs outline-none focus:border-[#1D4ED8] focus:ring-1 focus:ring-[#1D4ED8]"
               />
             </div>
 
-            {/* Hackathon Demonstration Notice */}
-            <div className="p-3 rounded-xl bg-slate-50 border border-slate-200 text-[11px] text-slate-500 leading-relaxed">
-              <strong className="text-slate-700">Hackathon Demonstration Notice: </strong>
-              This consultation workflow simulates digital booking for TalentAP Mega Hackathon 2026 (Problem B2). No real-world external advisor is contacted. You can immediately enter the simulated video room upon confirmation.
-            </div>
-
             {/* Bottom Actions */}
-            <div className="pt-3 border-t border-slate-100 flex items-center justify-between">
+            <div className="pt-4 border-t border-slate-200 flex items-center justify-between">
               <button
                 type="button"
                 onClick={onClose}
-                className="px-4 py-2 text-xs font-semibold text-slate-500 hover:text-slate-800"
+                className="px-5 py-2.5 text-xs font-semibold text-slate-500 hover:text-slate-800 transition-colors"
               >
                 Cancel
               </button>
@@ -422,9 +443,9 @@ export const ConsultationBookingModal: React.FC<BookingModalProps> = ({
                 type="button"
                 onClick={handleConfirmBooking}
                 disabled={loading}
-                className="px-6 py-2.5 rounded-full text-xs font-bold text-white bg-[#1D4ED8] hover:bg-[#1E40AF] transition-all shadow-md active:scale-95 flex items-center space-x-1.5 disabled:opacity-50"
+                className="px-7 py-3 rounded-full text-xs font-bold text-white bg-[#1D4ED8] hover:bg-[#1E40AF] transition-all shadow-md shadow-blue-600/25 active:scale-95 flex items-center space-x-2 disabled:opacity-50"
               >
-                <span>{loading ? 'Booking Slot...' : 'Confirm Appointment'}</span>
+                <span>{loading ? 'Booking Appointment...' : 'Confirm Appointment'}</span>
                 <ArrowRight className="w-3.5 h-3.5" />
               </button>
             </div>
@@ -432,27 +453,42 @@ export const ConsultationBookingModal: React.FC<BookingModalProps> = ({
           </div>
         ) : (
           /* Booking Confirmation State */
-          <div className="p-6 rounded-2xl bg-emerald-50/70 border border-emerald-200 text-center space-y-4 animate-in zoom-in-95 duration-200">
-            <div className="w-12 h-12 rounded-full bg-emerald-500 text-white flex items-center justify-center mx-auto shadow-md">
-              <CheckCircle2 className="w-6 h-6" />
+          <div className="p-8 rounded-3xl bg-white border border-emerald-200 text-center space-y-5 animate-in zoom-in-95 duration-200 shadow-md">
+            <div className="w-14 h-14 rounded-2xl bg-emerald-500 text-white flex items-center justify-center mx-auto shadow-lg shadow-emerald-500/20">
+              <CheckCircle2 className="w-8 h-8" />
             </div>
 
             <div>
-              <h4 className="font-serif text-xl font-bold text-emerald-950">
+              <h4 className="font-serif text-2xl font-bold text-[#0B132B]">
                 Consultation Confirmed!
               </h4>
-              <p className="text-xs text-emerald-800 mt-1">
-                Your appointment with <span className="font-bold">{confirmedAppt.advisor_name || currentAdvisor?.name}</span> is scheduled for <span className="font-bold">{confirmedAppt.slot_time}</span>.
+              <p className="text-xs text-slate-600 mt-1.5 max-w-md mx-auto">
+                Your appointment with <span className="font-bold text-slate-900">{confirmedAppt.advisor_name || currentAdvisor?.name}</span> is confirmed for <span className="font-bold text-slate-900">{confirmedAppt.slot_time}</span>.
               </p>
-              <div className="mt-2 font-mono text-xs font-bold text-emerald-900 bg-white/80 py-1.5 px-3.5 rounded-lg inline-block border border-emerald-200 shadow-xs">
+              <div className="mt-3 font-mono text-xs font-bold text-emerald-900 bg-emerald-50 py-2 px-4 rounded-xl inline-block border border-emerald-200">
                 Booking Reference: {confirmedAppt.appointment_code}
               </div>
             </div>
 
-            <div className="p-3 bg-white/70 rounded-xl border border-emerald-200 text-left text-xs text-emerald-900 space-y-1">
-              <div><strong>Client:</strong> {confirmedAppt.client_name} ({confirmedAppt.client_email})</div>
-              <div><strong>Topic:</strong> {confirmedAppt.topic}</div>
-              <div><strong>Format:</strong> {confirmedAppt.consultation_mode === 'video' ? 'Simulated HD Video Room' : 'Direct Phone Consultation'}</div>
+            <div className="p-4 bg-[#FAF9F5] rounded-2xl border border-slate-200 text-left text-xs text-slate-700 space-y-1.5 max-w-lg mx-auto font-mono">
+              <div className="flex justify-between border-b border-slate-200/60 pb-1">
+                <span className="text-slate-500">Client:</span>
+                <strong>{confirmedAppt.client_name}</strong>
+              </div>
+              <div className="flex justify-between border-b border-slate-200/60 pb-1">
+                <span className="text-slate-500">Email:</span>
+                <span>{confirmedAppt.client_email}</span>
+              </div>
+              <div className="flex justify-between border-b border-slate-200/60 pb-1">
+                <span className="text-slate-500">Topic:</span>
+                <span className="truncate max-w-xs">{confirmedAppt.topic}</span>
+              </div>
+              <div className="flex justify-between pt-0.5">
+                <span className="text-slate-500">Format:</span>
+                <span className="text-[#1D4ED8] font-bold">
+                  {confirmedAppt.consultation_mode === 'video' ? 'HD Video Consultation Room' : 'Phone Call'}
+                </span>
+              </div>
             </div>
 
             <div className="pt-3 flex flex-col sm:flex-row items-center justify-center gap-3">
@@ -461,21 +497,21 @@ export const ConsultationBookingModal: React.FC<BookingModalProps> = ({
                   onClose();
                   onJoinVideoRoom(
                     confirmedAppt.appointment_code, 
-                    confirmedAppt.advisor_name || currentAdvisor?.name || 'Priya Sharma', 
+                    confirmedAppt.advisor_name || currentAdvisor?.name || 'Farah Siddiqui', 
                     confirmedAppt.topic
                   );
                 }}
-                className="w-full sm:w-auto px-6 py-2.5 rounded-full text-xs font-bold text-white bg-[#1D4ED8] hover:bg-[#1E40AF] transition-all shadow-md flex items-center justify-center space-x-2 active:scale-95"
+                className="w-full sm:w-auto px-7 py-3 rounded-full text-xs font-bold text-white bg-[#1D4ED8] hover:bg-[#1E40AF] transition-all shadow-md shadow-blue-500/25 flex items-center justify-center space-x-2 active:scale-95"
               >
                 <Video className="w-4 h-4" />
-                <span>Join Simulated Video Room (Demo)</span>
+                <span>Enter Video Consultation Room</span>
               </button>
 
               <button
                 onClick={onClose}
-                className="w-full sm:w-auto px-5 py-2.5 rounded-full text-xs font-semibold text-slate-700 bg-white hover:bg-slate-50 border border-slate-200"
+                className="w-full sm:w-auto px-6 py-3 rounded-full text-xs font-semibold text-slate-700 bg-white hover:bg-slate-50 border border-slate-200"
               >
-                Close Window
+                Done
               </button>
             </div>
           </div>

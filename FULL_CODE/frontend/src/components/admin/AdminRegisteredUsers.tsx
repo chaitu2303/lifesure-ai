@@ -198,7 +198,8 @@ export const AdminRegisteredUsers: React.FC<AdminRegisteredUsersProps> = ({ admi
           {/* List Feed */}
           <div className="flex-1 overflow-y-auto divide-y divide-slate-100 p-2 space-y-1">
             {displayedList.map((item) => {
-              const isRegistered = item.record_type === 'Registered Account';
+              const isRegistered = item.record_type?.includes('Account') || item.role === 'customer' || item.role === 'admin';
+              const isDemo = item.is_synthetic_demo || item.record_type === 'Authorized Demo Account';
               const isSelected = selectedUser?.record_id === item.user_id;
 
               return (
@@ -213,7 +214,11 @@ export const AdminRegisteredUsers: React.FC<AdminRegisteredUsersProps> = ({ admi
                 >
                   <div className="flex items-center space-x-3">
                     <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs ${
-                      isRegistered ? 'bg-emerald-600 text-white' : 'bg-blue-600 text-white'
+                      item.role === 'admin' 
+                        ? 'bg-slate-900 text-white' 
+                        : isDemo 
+                        ? 'bg-blue-600 text-white' 
+                        : 'bg-emerald-600 text-white'
                     }`}>
                       {item.full_name?.charAt(0) || 'U'}
                     </div>
@@ -223,17 +228,23 @@ export const AdminRegisteredUsers: React.FC<AdminRegisteredUsersProps> = ({ admi
                         <span className="text-[10px] font-mono text-slate-400">({item.user_id})</span>
                       </div>
                       <p className="text-[11px] text-slate-500 mt-0.5">
-                        {isRegistered ? `${item.role?.toUpperCase()} • Registered User` : `${item.occupation || 'Customer'} • ${item.city || 'India'}`}
+                        {item.role === 'admin' 
+                          ? 'ADMINISTRATOR • Master Account'
+                          : isDemo 
+                          ? 'Authorized Demo Customer • Benchmark Account' 
+                          : `${item.role?.toUpperCase()} • Real Registered Customer`}
                       </p>
                     </div>
                   </div>
 
                   <span className={`text-[10px] font-mono px-2 py-0.5 rounded font-semibold ${
-                    isRegistered
-                      ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
-                      : 'bg-blue-50 text-blue-700 border border-blue-200'
+                    item.role === 'admin'
+                      ? 'bg-slate-900 text-white'
+                      : isDemo
+                      ? 'bg-blue-50 text-blue-700 border border-blue-200'
+                      : 'bg-emerald-50 text-emerald-700 border border-emerald-200'
                   }`}>
-                    {isRegistered ? 'Account' : 'Imported'}
+                    {item.role === 'admin' ? 'Admin' : isDemo ? 'Demo Account' : 'Registered'}
                   </span>
                 </div>
               );
@@ -302,25 +313,19 @@ export const AdminRegisteredUsers: React.FC<AdminRegisteredUsersProps> = ({ admi
               {/* Profile Details if dataset member */}
               {selectedUser.profile_info && (
                 <div className="space-y-4">
-                  {/* Credentials block for demo testing */}
+                  {/* Benchmark Profile Metadata block (No Passwords) */}
                   <div className="p-4 bg-blue-50/70 border border-blue-200 rounded-xl space-y-2 text-xs">
                     <span className="text-[10px] font-mono uppercase text-blue-800 font-bold block">
-                      Dataset Customer Assigned Demo Credentials
+                      Synthetic Benchmark Customer Profile (Read-Only)
                     </span>
-                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                       <div>
-                        <span className="text-slate-500 block text-[10px] font-mono">User ID / Username:</span>
-                        <code className="text-blue-900 font-mono font-bold">{selectedUser.profile_info.user_id}</code>
+                        <span className="text-slate-500 block text-[10px] font-mono">Profile ID:</span>
+                        <code className="text-blue-900 font-mono font-bold">{selectedUser.profile_info.profile_id}</code>
                       </div>
                       <div>
-                        <span className="text-slate-500 block text-[10px] font-mono">Default Demo Password:</span>
-                        <code className="text-blue-900 font-mono font-bold bg-white px-1.5 py-0.5 rounded border border-blue-200">
-                          {selectedUser.profile_info.default_password}
-                        </code>
-                      </div>
-                      <div>
-                        <span className="text-slate-500 block text-[10px] font-mono">Registered Email:</span>
-                        <span className="text-slate-700 truncate block">{selectedUser.profile_info.email}</span>
+                        <span className="text-slate-500 block text-[10px] font-mono">Demo Email:</span>
+                        <span className="text-slate-700 truncate block font-mono">{selectedUser.profile_info.email}</span>
                       </div>
                     </div>
                   </div>

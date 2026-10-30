@@ -126,22 +126,18 @@ def init_db_and_seed():
             db.add(admin_account)
             db.commit()
 
-        # Import customer profiles into DB table customer_profiles and register user_accounts
+        # 1. Import synthetic customer profiles into DB table customer_profiles for Admin Customer Explorer
         for cp in data_loader.customer_profiles:
             prof_id = cp.get("profile_id")
-            creds = cp.get("login_credentials", {})
-            user_id = creds.get("user_id", prof_id)
-            email = creds.get("email", f"{prof_id.lower()}@lifewise.demo")
-            default_pw = creds.get("default_password", f"Customer@{prof_id.split('-')[-1][:4]}")
-
-            # 1. Sync CustomerProfileRecord
+            cp_clean = dict(cp)
+            cp_clean.pop("login_credentials", None)
             existing_prof = db.query(CustomerProfileRecord).filter_by(profile_id=prof_id).first()
             if not existing_prof:
                 rec = CustomerProfileRecord(
                     profile_id=prof_id,
-                    user_id=user_id,
-                    email=email,
-                    default_password=default_pw,
+                    user_id=prof_id,
+                    email=f"{prof_id.lower()}@lifewise.demo",
+                    default_password=None,
                     full_name=cp.get("full_name", prof_id),
                     age=int(cp.get("age", 30)),
                     gender=cp.get("gender", "male"),
@@ -155,32 +151,20 @@ def init_db_and_seed():
                     record_source="dataset_b2_synthetic",
                     import_status="imported",
                     has_assessment=True,
-                    raw_profile_json=json.dumps(cp),
+                    raw_profile_json=json.dumps(cp_clean),
                 )
                 db.add(rec)
             else:
-                existing_prof.user_id = user_id
-                existing_prof.email = email
-                existing_prof.default_password = default_pw
-
-            # 2. Register UserAccount for customer with hashed credentials so they can log in
-            existing_account = db.query(UserAccount).filter_by(user_id=user_id).first()
-            if not existing_account:
-                pw_hash, salt = hash_password(default_pw)
-                user_account = UserAccount(
-                    user_id=user_id,
-                    role="customer",
-                    password_hash=pw_hash,
-                    salt=salt,
-                    full_name=cp.get("full_name", prof_id),
-                    email=email,
-                    must_change_password=False,
-                    is_active=True,
-                    linked_profile_id=prof_id,
-                )
-                db.add(user_account)
+                existing_prof.user_id = prof_id
+                existing_prof.default_password = None
+                existing_prof.raw_profile_json = json.dumps(cp_clean)
 
         db.commit()
+
+        # 2. Provision the 200 synthetic demo customer accounts idempotently into user_accounts
+        # with unique secure temporary passwords recorded in the admin-only Excel artifact
+        from app.services.provisioning import provision_demo_customers
+        provision_demo_customers()
 
     finally:
         db.close()

@@ -8,14 +8,14 @@ from datetime import datetime
 
 logger = logging.getLogger("lifewise.data_loader")
 
-# Potential dataset locations in order of priority
+# Potential dataset locations in order of priority (FULL_CODE/data first per guidelines)
 CANDIDATE_DATA_DIRS = [
     os.getenv("DATA_DIR", ""),
-    str(Path(__file__).resolve().parent.parent.parent / "Datasets" / "B2_Life_Insurance_Needs_Finder" / "data"),
-    str(Path(__file__).resolve().parent.parent.parent / "data"),
     str(Path(__file__).resolve().parent.parent.parent / "FULL_CODE" / "data"),
-    "E:\\TalentAP\\Datasets\\B2_Life_Insurance_Needs_Finder\\data",
+    str(Path(__file__).resolve().parent.parent.parent / "data"),
+    str(Path(__file__).resolve().parent.parent.parent / "Datasets" / "B2_Life_Insurance_Needs_Finder" / "data"),
     "E:\\TalentAP\\FULL_CODE\\data",
+    "E:\\TalentAP\\Datasets\\B2_Life_Insurance_Needs_Finder\\data",
     "E:\\TalentAP\\data",
 ]
 

@@ -1,8 +1,40 @@
 # LifeWise — Intelligent Life Insurance Needs Finder & Digital Advisory Platform
-## TalentAP Mega Hackathon 2026 | Problem B2
+## TalentAP Mega Hackathon 2026 | Problem Track: BFSI B2
+### Team Name: Cs Vertex | Team ID: 001191 | Problem Statement ID: B2
 
 > **Protect Today. Plan Tomorrow. Live Assured.**  
 > *LifeWise — Life Insurance, Made Understandable.*
+
+---
+
+## 📋 Competition Submission Metadata
+
+- **Team Name:** Cs Vertex
+- **Team ID:** `001191`
+- **Problem Statement ID:** `B2` (BFSI: Intelligent Life Insurance Needs Finder & Digital Advisory Platform)
+- **Submission Archive Structure:** Conforms strictly to TalentAP Participant Coding Guidelines v1.1 (`001191_B2.zip`).
+
+---
+
+## 📦 Dataset Supplying Instructions for Evaluators
+
+Per official hackathon rule 7, the large raw dataset files are excluded from Git repository tracking via `.gitignore`. 
+
+For the evaluators to run LifeWise on a fresh Git clone:
+1. Copy the 10 provided B2 dataset files (`products.json`/`.csv`, `premium_rates.csv`, `riders.csv`, `ulip_funds.csv`, `ulip_mortality_charges.csv`, `customer_profiles.json`/`.csv`, `customer_goals.csv`, `reference_assumptions.json`, `advisors.csv`, `advisor_slots.csv`, and `docs/glossary.md`) into:
+   ```text
+   FULL_CODE/data/
+   ```
+2. LifeWise also automatically checks `Datasets/B2_Life_Insurance_Needs_Finder/data/` or any path specified by the `DATA_DIR` environment variable.
+3. Validate loading instantly via the health diagnostics check:
+   ```bash
+   GET http://127.0.0.1:8000/api/datasets/status
+   ```
+   Or via CLI:
+   ```bash
+   cd FULL_CODE/backend
+   python -c "from app.data_loader import data_loader; print(data_loader.diagnostics['status'])"
+   ```
 
 ---
 
@@ -65,17 +97,16 @@ The project is structured according to official hackathon submission requirement
 ```text
 TalentAP/
 ├── README.md                           # Main Hackathon documentation (this file)
-├── EVALUATION_READINESS.md             # Complete AI Evaluation Readiness Report
 ├── .gitignore                          # Submission exclusions (data, local DBs, node_modules)
 ├── LICENSE                             # MIT License
-├── Datasets/                           # Local synthetic datasets (excluded from submission ZIP)
-│   └── B2_Life_Insurance_Needs_Finder/
-│       └── data/                       # 10 synthetic CSV / JSON files
 └── FULL_CODE/
     ├── .env.example                    # Environment variable template
-    ├── EVALUATION_READINESS.md         # Mirrored evaluation readiness report
-    ├── data/
-    │   └── README.md                   # Instructions for placing datasets
+    ├── data/                           # Local synthetic datasets (excluded from git)
+    │   └── README.md                   # Instructions and dataset catalog
+    ├── db/
+    │   └── schema.sql                  # Database schema definitions
+    ├── models/
+    │   └── README.md                   # Local models directory placeholder
     ├── backend/
     │   ├── app/
     │   │   ├── main.py                 # FastAPI application, startup seeding & diagnostics

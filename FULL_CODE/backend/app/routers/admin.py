@@ -171,11 +171,33 @@ def admin_list_products(
     authorized: bool = Depends(verify_admin_key)
 ):
     """
-    List demo products for admin inspection.
+    List products for admin inspection. Falls back to data_loader products if DB is empty.
     """
     products = db.query(ProductModel).all()
     if not products:
-        return DEMO_PRODUCTS
+        # Return fallback catalogue from authoritative synthetic data_loader
+        return [
+            {
+                "id": p.get("product_id"),
+                "name": p.get("product_name"),
+                "category": p.get("category"),
+                "tagline": p.get("plain_language_summary", ""),
+                "min_age": p.get("min_entry_age", 18),
+                "max_age": p.get("max_entry_age", 65),
+                "min_cover": p.get("min_sum_assured_inr", 500000.0),
+                "max_cover": p.get("max_sum_assured_inr", 100000000.0),
+                "cost_rating": "Low" if p.get("category") == "term" else "Moderate",
+                "flexibility_rating": "High",
+                "investment_component": p.get("category") != "term",
+                "description": p.get("plain_language_summary", ""),
+                "key_benefits_json": json.dumps([p.get("death_benefit", ""), p.get("key_features", "")]),
+                "limitations_json": json.dumps([p.get("key_exclusions", "")]),
+                "ideal_for": p.get("key_features", ""),
+                "base_rate_per_lakh": 100.0,
+                "is_active": True,
+            }
+            for p in data_loader.products_list
+        ]
     return products
 
 @router.patch("/products/{product_id}/toggle")
@@ -242,7 +264,8 @@ def get_registered_users(
             "email": u.email,
             "role": u.role,
             "account_status": "Active" if u.is_active else "Suspended",
-            "record_type": "Registered Account",
+            "record_type": "Authorized Demo Account" if u.linked_profile_id else "Directly Registered Account",
+            "is_synthetic_demo": bool(u.linked_profile_id),
             "must_change_password": u.must_change_password,
             "created_at": u.created_at.isoformat() if u.created_at else None,
             "last_login_at": u.last_login_at.isoformat() if u.last_login_at else None,
@@ -257,7 +280,6 @@ def get_registered_users(
             "user_id": p.user_id or p.profile_id,
             "full_name": p.full_name,
             "email": p.email or f"{p.profile_id.lower()}@lifewise.demo",
-            "default_password": p.default_password or f"Customer@{p.profile_id.split('-')[-1][:4]}",
             "age": p.age,
             "city": p.city,
             "city_tier": p.city_tier,
@@ -265,8 +287,8 @@ def get_registered_users(
             "employment_type": p.employment_type,
             "annual_income_inr": p.annual_income_inr,
             "monthly_household_expenses_inr": p.monthly_household_expenses_inr,
-            "account_status": "Imported Profile",
-            "record_type": "Imported Dataset Record",
+            "account_status": "Benchmark Profile",
+            "record_type": "Synthetic Dataset Record (Read-Only)",
             "has_assessment": p.has_assessment,
             "record_source": p.record_source,
             "import_status": p.import_status,
@@ -330,7 +352,6 @@ def get_user_detail_read_only(
             "profile_id": customer_prof.profile_id,
             "user_id": customer_prof.user_id or customer_prof.profile_id,
             "email": customer_prof.email or f"{customer_prof.profile_id.lower()}@lifewise.demo",
-            "default_password": customer_prof.default_password or f"Customer@{customer_prof.profile_id.split('-')[-1][:4]}",
             "full_name": customer_prof.full_name,
             "age": customer_prof.age,
             "gender": customer_prof.gender,

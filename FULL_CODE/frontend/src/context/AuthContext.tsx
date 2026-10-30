@@ -128,25 +128,22 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       };
 
       setCurrentUser(user);
-      setIsAdmin(false);
+      // Switching demo customer persona preserves administrator governance status
       localStorage.setItem('lifewise_current_user', JSON.stringify(user));
-      localStorage.removeItem('lifewise_is_admin');
 
       if (data.assessment_input && data.calculation_result) {
         setActiveAssessmentInput(data.assessment_input);
         setActiveCalculationResult(data.calculation_result);
       }
 
-      setNotificationMessage(`Switched active profile to ${user.full_name}`);
+      setNotificationMessage(`Switched demo profile persona to ${user.full_name}`);
       setTimeout(() => setNotificationMessage(null), 3500);
     } catch {
       const match = availableProfiles.find(p => p.profile_id === profileId);
       if (match) {
         setCurrentUser(match);
-        setIsAdmin(false);
         localStorage.setItem('lifewise_current_user', JSON.stringify(match));
-        localStorage.removeItem('lifewise_is_admin');
-        setNotificationMessage(`Switched active profile to ${match.full_name}`);
+        setNotificationMessage(`Switched demo profile persona to ${match.full_name}`);
         setTimeout(() => setNotificationMessage(null), 3500);
       }
     } finally {
