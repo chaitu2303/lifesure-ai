@@ -80,3 +80,4 @@ CREATE TABLE IF NOT EXISTS financial_assumptions (
     family_expense_factor NUMERIC(5, 4) NOT NULL,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
+
