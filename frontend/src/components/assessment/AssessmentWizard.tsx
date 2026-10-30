@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   ArrowLeft, 
   ArrowRight, 
@@ -14,9 +14,10 @@ import {
   Sun,
   HeartHandshake,
   DollarSign,
-  AlertCircle
+  AlertCircle,
+  UserCheck
 } from 'lucide-react';
-import { AssessmentInput, CalculationResult, GoalItem } from '../../types';
+import { AssessmentInput, CalculationResult, GoalItem, CustomerProfileSummary } from '../../types';
 import { api } from '../../services/api';
 import { formatINR } from '../../utils/formatters';
 
@@ -83,6 +84,71 @@ export const AssessmentWizard: React.FC<AssessmentWizardProps> = ({
   const [formData, setFormData] = useState<AssessmentInput>(initialInput || DEFAULT_ASSESSMENT_INPUT);
   const [loading, setLoading] = useState<boolean>(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [demoProfiles, setDemoProfiles] = useState<CustomerProfileSummary[]>([]);
+  const [selectedProfileId, setSelectedProfileId] = useState<string>('');
+
+  useEffect(() => {
+    api.getDemoProfiles().then((profs) => {
+      if (profs && profs.length > 0) {
+        setDemoProfiles(profs);
+      }
+    }).catch((err) => console.warn('Could not load demo profiles:', err));
+  }, []);
+
+  const handleSelectProfile = (profileId: string) => {
+    setSelectedProfileId(profileId);
+    if (!profileId) return;
+    const p = demoProfiles.find((item) => item.profile_id === profileId);
+    if (!p) return;
+
+    const childrenCount = p.dependents?.children?.length || 0;
+    const parentsCount = p.dependents?.parents?.length || 0;
+    const hasSpouse = p.dependents?.spouse ? 1 : 0;
+    const totalDeps = Math.max(1, childrenCount + parentsCount + hasSpouse);
+
+    const homeLoan = p.liabilities?.find((l) => l.loan_type === 'home_loan')?.outstanding_principal_inr || 0;
+    const carLoan = p.liabilities?.find((l) => l.loan_type === 'car_loan')?.outstanding_principal_inr || 0;
+    const personalLoan = p.liabilities?.find((l) => l.loan_type === 'personal_loan')?.outstanding_principal_inr || 0;
+    const eduLoan = p.liabilities?.find((l) => l.loan_type === 'education_loan')?.outstanding_principal_inr || 0;
+
+    const goals: GoalItem[] = (p.goals || []).map((g, idx) => ({
+      id: g.goal_id || `goal-${idx}`,
+      name: g.goal_type?.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase()) || 'Family Milestone',
+      target_amount: g.target_amount_today_inr || 2000000,
+      years_until_goal: g.years_until_goal || (g.target_year ? Math.max(1, g.target_year - 2026) : 10),
+    }));
+
+    setFormData({
+      full_name: p.full_name,
+      age: p.age,
+      annual_income: p.annual_income_inr,
+      monthly_expenses: p.monthly_household_expenses_inr,
+      monthly_budget: p.monthly_premium_budget_inr,
+      dependents_count: totalDeps,
+      retirement_age: 60,
+      replacement_horizon_years: Math.max(10, Math.min(25, 60 - p.age)),
+      liabilities: {
+        home_loan: homeLoan,
+        car_loan: carLoan,
+        personal_loan: personalLoan,
+        education_loan: eduLoan,
+        credit_cards: 0,
+        other_liabilities: 0,
+      },
+      future_goals: goals.length > 0 ? goals : [
+        { id: 'g-default', name: "Child's Higher Education", target_amount: 2500000, years_until_goal: 12 },
+      ],
+      existing_assets: {
+        savings_account: p.savings_and_investments?.liquid_savings_inr ? Math.round(p.savings_and_investments.liquid_savings_inr * 0.4) : 300000,
+        fixed_deposits: p.savings_and_investments?.liquid_savings_inr ? Math.round(p.savings_and_investments.liquid_savings_inr * 0.6) : 300000,
+        mutual_funds_stocks: p.savings_and_investments?.market_investments_inr || 500000,
+        pf_ppf_available: p.savings_and_investments?.retirement_savings_inr || 0,
+        other_liquid_assets: 0,
+      },
+      existing_life_cover: (p.existing_life_cover?.individual_inr || 0) + (p.existing_life_cover?.employer_group_inr || 0),
+      risk_profile: p.risk_appetite || 'moderate',
+    });
+  };
 
   // New goal form state
   const [newGoalName, setNewGoalName] = useState('');
@@ -221,14 +287,35 @@ export const AssessmentWizard: React.FC<AssessmentWizardProps> = ({
           </h2>
         </div>
 
-        <div className="flex items-center space-x-2">
+        <div className="flex flex-wrap items-center gap-2">
+          {/* Quick Load Synthetic Profile */}
+          <div className="flex items-center space-x-1.5 px-2.5 py-1.5 rounded-lg border border-blue-200 bg-blue-50/70 text-xs">
+            <UserCheck className="w-3.5 h-3.5 text-[#1D4ED8]" />
+            <select
+              value={selectedProfileId}
+              onChange={(e) => handleSelectProfile(e.target.value)}
+              className="bg-transparent text-xs font-semibold text-[#0B132B] outline-none cursor-pointer"
+              title="Quick Load Synthetic Profile from B2 dataset"
+            >
+              <option value="">Quick Load Synthetic Profile...</option>
+              {demoProfiles.map((p) => (
+                <option key={p.profile_id} value={p.profile_id}>
+                  {p.full_name} ({p.age}y, ₹{(p.annual_income_inr / 100000).toFixed(1)}L/yr, {p.city})
+                </option>
+              ))}
+            </select>
+          </div>
+
           <button
-            onClick={() => setFormData(DEFAULT_ASSESSMENT_INPUT)}
+            onClick={() => {
+              setSelectedProfileId('');
+              setFormData(DEFAULT_ASSESSMENT_INPUT);
+            }}
             className="text-xs font-mono text-slate-600 hover:text-[#0B132B] flex items-center space-x-1.5 px-3 py-1.5 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 transition-colors shadow-xs"
             title="Populate benchmark sample figures"
           >
             <RefreshCw className="w-3.5 h-3.5 text-[#1D4ED8]" />
-            <span className="hidden sm:inline">Load Reference Values</span>
+            <span className="hidden sm:inline">Reset Values</span>
           </button>
         </div>
       </div>

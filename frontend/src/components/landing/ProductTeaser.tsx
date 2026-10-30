@@ -159,7 +159,7 @@ export const ProductTeaser: React.FC<ProductTeaserProps> = ({ onStartAssessment 
         {/* Note on Illustrative Pricing */}
         <div className="mt-8 pt-6 border-t border-[#E6E4DF] flex flex-col sm:flex-row items-center justify-between text-[11px] font-mono text-[#64748B] gap-4">
           <div>
-            Note: Premium costs vary by age, health underwriting, and underwriting jurisdiction. LifeSure displays actuarially sound illustrative benchmarks without inflated marketing promises.
+            Note: Premium costs vary by age, health underwriting, and policy term. LifeWise displays actuarially sound illustrative benchmarks from the Saffron Life catalogue without inflated marketing promises.
           </div>
           {onStartAssessment && (
             <button

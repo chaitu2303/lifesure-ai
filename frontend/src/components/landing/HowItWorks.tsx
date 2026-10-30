@@ -26,8 +26,8 @@ export const HowItWorks: React.FC<HowItWorksProps> = ({
   const steps = [
     {
       num: '01',
-      title: 'Tell Us About You',
-      desc: 'Share your financial details and goals.',
+      title: 'Understand Your Needs',
+      desc: 'Collect financial information, household responsibilities, liabilities, and future goals.',
       icon: UserCheck,
       action: () => onNavigate('assessment'),
       color: 'text-blue-600',
@@ -35,17 +35,17 @@ export const HowItWorks: React.FC<HowItWorksProps> = ({
     },
     {
       num: '02',
-      title: 'We Calculate',
-      desc: 'Our algorithm finds your exact coverage need.',
+      title: 'Discover Your Coverage',
+      desc: 'Calculate an estimated protection requirement and explain every component.',
       icon: Calculator,
-      action: () => onNavigate('assessment'),
+      action: () => onNavigate('results'),
       color: 'text-indigo-600',
       bg: 'bg-indigo-50',
     },
     {
       num: '03',
-      title: 'Get Recommendations',
-      desc: 'Explore the best plans for your profile.',
+      title: 'Compare Suitable Options',
+      desc: 'Evaluate eligible products, available premium rates, policy terms, and relevant benefits.',
       icon: Layers,
       action: () => onNavigate('products'),
       color: 'text-teal-600',
@@ -53,8 +53,8 @@ export const HowItWorks: React.FC<HowItWorksProps> = ({
     },
     {
       num: '04',
-      title: 'Talk to an Advisor',
-      desc: 'Book a consultation with certified experts.',
+      title: 'Get Personalized Guidance',
+      desc: 'Explore advisor availability, book a consultation in the application, and review your plan.',
       icon: UserRound,
       action: () => onOpenBooking(),
       color: 'text-amber-600',
@@ -114,18 +114,18 @@ export const HowItWorks: React.FC<HowItWorksProps> = ({
         {/* Two-card composition matching reference image */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-stretch">
           
-          {/* LEFT CONTAINER (7 cols): How LifeSure AI Works? */}
+          {/* LEFT CONTAINER (7 cols): How LifeWise Works */}
           <div className="lg:col-span-7 p-6 sm:p-8 rounded-3xl bg-[#FAF9F5] border border-[#E6E4DF] shadow-xs flex flex-col justify-between space-y-6">
             
             <div className="space-y-1.5">
               <div className="flex items-center space-x-2">
                 <span className="w-2 h-2 rounded-full bg-[#1D4ED8]" />
                 <h3 className="font-serif text-2xl sm:text-3xl font-semibold text-[#0B132B]">
-                  How LifeSure AI Works?
+                  Your Protection Journey, Made Simple.
                 </h3>
               </div>
               <p className="text-xs sm:text-sm text-slate-500 font-normal">
-                A simple, intelligent, and guided journey to find your right life cover.
+                Four connected, transparent steps from initial discovery to certified advisory.
               </p>
             </div>
 
@@ -180,14 +180,14 @@ export const HowItWorks: React.FC<HowItWorksProps> = ({
 
           </div>
 
-          {/* RIGHT CONTAINER (5 cols): Why Choose LifeSure AI? */}
+          {/* RIGHT CONTAINER (5 cols): Why Choose LifeWise? */}
           <div className="lg:col-span-5 p-6 sm:p-8 rounded-3xl bg-[#FAF9F5] border border-[#E6E4DF] shadow-xs flex flex-col justify-between space-y-6">
             
             <div className="space-y-1.5">
               <div className="flex items-center space-x-2">
                 <span className="w-2 h-2 rounded-full bg-emerald-500" />
                 <h3 className="font-serif text-2xl sm:text-3xl font-semibold text-[#0B132B]">
-                  Why Choose LifeSure AI?
+                  Why Choose LifeWise?
                 </h3>
               </div>
               <p className="text-xs sm:text-sm text-slate-500 font-normal">

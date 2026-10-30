@@ -1,27 +1,57 @@
 # Dependencies
 node_modules/
-frontend/node_modules/
+**/node_modules/
 .venv/
 venv/
 env/
 
-# Build artifacts
-frontend/dist/
+# Build artifacts & caches
 dist/
-
-# Python
+**/dist/
+build/
+.vite/
 __pycache__/
+**/__pycache__/
 *.py[cod]
 *$py.class
-*.sqlite3
-*.db
-backend/*.db
 .pytest_cache/
 .coverage
 htmlcov/
 
-# Logs & temp
+# Local Database Files (Never commit local database dumps or sqlite files)
+*.sqlite
+*.sqlite3
+*.db
+*.db-journal
+lifesure.db
+backend/lifesure.db
+lifewise.db
+backend/lifewise.db
+FULL_CODE/backend/*.db
+FULL_CODE/*.db
+
+# Secrets & Environment
+.env
+.env.local
+.env.*.local
+*.env
+
+# Hackathon Synthetic Datasets (Excluded from submission ZIP per official rules)
+Datasets/
+**/Datasets/
+data/*.csv
+data/*.json
+!data/README.md
+FULL_CODE/data/*.csv
+FULL_CODE/data/*.json
+!FULL_CODE/data/README.md
+
+# Logs & OS
+*.zip
 *.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
 .DS_Store
 Thumbs.db
 .idea/

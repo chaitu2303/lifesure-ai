@@ -9,7 +9,10 @@ import {
   TrendingUp,
   ShieldCheck,
   AlertCircle,
-  Sparkles
+  Sparkles,
+  Check,
+  CheckCircle2,
+  DollarSign
 } from 'lucide-react';
 import {
   BarChart,
@@ -21,7 +24,15 @@ import {
   ResponsiveContainer,
   Cell,
 } from 'recharts';
-import { CalculationResult, AssessmentInput, SimulationRequest, SimulationResponse } from '../../types';
+import { 
+  CalculationResult, 
+  AssessmentInput, 
+  SimulationRequest, 
+  SimulationResponse,
+  ProductCatalogueItem,
+  RiderItem,
+  PremiumQuoteResult
+} from '../../types';
 import { api } from '../../services/api';
 import { formatINR, formatCrores, formatPercent } from '../../utils/formatters';
 
@@ -38,73 +49,111 @@ export const WhatIfSimulator: React.FC<SimulatorProps> = ({
   onBackToDashboard,
   onOpenBooking,
 }) => {
-  // Simulator Controls matching Screen 7 in reference image
+  // Products and Riders from Catalogue
+  const [catalogue, setCatalogue] = useState<ProductCatalogueItem[]>([]);
+  const [availableRiders, setAvailableRiders] = useState<RiderItem[]>([]);
+  const [selectedProductId, setSelectedProductId] = useState<string>('PRD-X4CBUF');
+
+  // Simulator Controls
   const [coverageAmount, setCoverageAmount] = useState<number>(
     baseResult.total_gross_protection_need || 10000000
   );
   const [policyTenure, setPolicyTenure] = useState<number>(20);
-  const [monthlyBudget, setMonthlyBudget] = useState<number>(1500);
-  const [inflationRate, setInflationRate] = useState<number>(6);
+  const [premiumPaymentTerm, setPremiumPaymentTerm] = useState<string>('regular');
+  const [premiumMode, setPremiumMode] = useState<string>('monthly');
+  const [selectedRiders, setSelectedRiders] = useState<string[]>(['RDR-ACC-01']);
+  const [monthlyBudget, setMonthlyBudget] = useState<number>(baseInput.monthly_budget || 2000);
+  const [inflationRate, setInflationRate] = useState<number>(5.5);
 
-  const [simResult, setSimResult] = useState<SimulationResponse | null>(null);
-  const [loading, setLoading] = useState<boolean>(false);
+  // Live Real Quote State from premium engine
+  const [quoteResult, setQuoteResult] = useState<PremiumQuoteResult | null>(null);
+  const [quoteError, setQuoteError] = useState<string | null>(null);
+  const [quoteLoading, setQuoteLoading] = useState<boolean>(false);
 
-  // Current resources (Existing cover + Assets)
-  const currentResources = (baseResult.existing_life_cover || 2000000) + (baseResult.eligible_existing_assets || 1500000);
-  const projectedGap = Math.max(0, coverageAmount - currentResources);
+  // Load Catalogue & Riders on Mount
+  useEffect(() => {
+    api.getCatalogueProducts().then((prods) => {
+      if (prods && prods.length > 0) setCatalogue(prods);
+    }).catch(err => console.warn('Could not load catalogue:', err));
 
-  // Dynamic estimated premium for selected coverage and tenure
-  const estimatedMonthlyPremium = Math.round(
-    (coverageAmount / 10000000) * 1200 * (1 + (policyTenure - 20) * 0.02)
-  );
+    api.getRiders().then((r) => {
+      if (r && r.length > 0) setAvailableRiders(r);
+    }).catch(err => console.warn('Could not load riders:', err));
+  }, []);
 
-  const budgetVariance = monthlyBudget - estimatedMonthlyPremium;
-  const isBudgetSufficient = budgetVariance >= 0;
-
-  // Real-time calculation update
+  // Fetch real premium quote whenever parameters change
   useEffect(() => {
     let cancelled = false;
 
-    async function runSim() {
+    async function fetchQuote() {
       try {
-        setLoading(true);
-        const req: SimulationRequest = {
-          base_annual_income: baseInput.annual_income,
-          base_monthly_expenses: baseInput.monthly_expenses,
-          base_dependents_count: baseInput.dependents_count,
-          base_liabilities: baseResult.total_liabilities,
-          base_future_goals: baseResult.total_future_goals_pv,
-          base_existing_assets: baseResult.eligible_existing_assets,
-          base_existing_cover: baseResult.existing_life_cover,
-          simulated_replacement_years: policyTenure,
-          simulated_inflation_rate: inflationRate / 100,
-          simulated_discount_rate: 0.08,
-          simulated_monthly_budget: monthlyBudget,
-          simulated_desired_cover_override: coverageAmount,
-          simulated_goals_scaling: 1.0,
-        };
+        setQuoteLoading(true);
+        setQuoteError(null);
 
-        const res = await api.runSimulation(req);
-        if (!cancelled) setSimResult(res);
-      } catch (err) {
-        console.warn('Simulation API call fallback:', err);
+        const ridersPayload = selectedRiders.map((rid) => ({
+          rider_id: rid,
+          sum_assured: rid === 'RDR-ACC-01' ? Math.min(5000000, coverageAmount * 0.5) : 2500000,
+        }));
+
+        const quote = await api.getRealQuote({
+          product_id: selectedProductId,
+          age: baseInput.age || 30,
+          gender: 'male',
+          smoker_status: 'non_smoker',
+          sum_assured: coverageAmount,
+          policy_term: policyTenure,
+          premium_payment_term: premiumPaymentTerm,
+          premium_mode: premiumMode,
+          riders: ridersPayload,
+        });
+
+        if (!cancelled) {
+          if (quote.error) {
+            setQuoteError(quote.error);
+            setQuoteResult(null);
+          } else {
+            setQuoteResult(quote);
+          }
+        }
+      } catch (err: any) {
+        if (!cancelled) {
+          setQuoteError(err?.message || 'Unsupported combination for this product tenure.');
+          setQuoteResult(null);
+        }
       } finally {
-        if (!cancelled) setLoading(false);
+        if (!cancelled) setQuoteLoading(false);
       }
     }
 
-    const t = setTimeout(runSim, 100);
+    const t = setTimeout(fetchQuote, 150);
     return () => {
       cancelled = true;
       clearTimeout(t);
     };
-  }, [coverageAmount, policyTenure, monthlyBudget, inflationRate]);
+  }, [
+    selectedProductId,
+    coverageAmount,
+    policyTenure,
+    premiumPaymentTerm,
+    premiumMode,
+    selectedRiders,
+    baseInput.age,
+  ]);
+
+  const currentResources = (baseResult.existing_life_cover || 2000000) + (baseResult.eligible_existing_assets || 1500000);
+  const projectedGap = Math.max(0, coverageAmount - currentResources);
+
+  const calculatedInstalment = quoteResult ? quoteResult.total_instalment : Math.round((coverageAmount / 10000000) * 1200);
+  const budgetVariance = monthlyBudget - calculatedInstalment;
+  const isBudgetSufficient = budgetVariance >= 0;
 
   const chartData = [
     { name: 'Total Need', amount: coverageAmount, color: '#1D4ED8' },
     { name: 'Current Resources', amount: currentResources, color: '#0D9488' },
     { name: 'Coverage Gap', amount: projectedGap, color: '#EF4444' },
   ];
+
+  const currentProduct = catalogue.find((p) => p.product_id === selectedProductId);
 
   return (
     <div className="space-y-8 max-w-6xl mx-auto">
@@ -115,13 +164,13 @@ export const WhatIfSimulator: React.FC<SimulatorProps> = ({
           <div className="flex items-center space-x-2 text-xs font-mono">
             <span className="font-bold text-[#1D4ED8]">What-If Simulator</span>
             <span className="text-slate-300">&bull;</span>
-            <span className="text-slate-500">Interactive Scenario Stress-Testing</span>
+            <span className="text-slate-500">Live Rate Quotation Engine</span>
           </div>
           <h1 className="font-serif text-3xl sm:text-4xl font-semibold text-[#0B132B] mt-0.5">
-            See How Different Choices Impact Your Coverage
+            Customise Your Policy & Simulate Rates
           </h1>
           <p className="text-xs sm:text-sm text-slate-500 mt-1">
-            Adjust the parameters below to explore custom protection horizons, budgets, and inflation scenarios.
+            Test policy structures against 39,588 real synthetic premium rates from Saffron Life Insurance.
           </p>
         </div>
 
@@ -137,18 +186,25 @@ export const WhatIfSimulator: React.FC<SimulatorProps> = ({
       {/* Main Grid: Controls on Left, Projected Chart on Right */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
         
-        {/* LEFT COLUMN (6 cols): Working Interactive Sliders */}
+        {/* LEFT COLUMN (6 cols): Working Interactive Sliders & Product Config */}
         <div className="lg:col-span-6 bg-white p-6 sm:p-8 rounded-3xl border border-[#E6E4DF] shadow-xs space-y-6">
           <div className="border-b border-slate-100 pb-3 flex items-center justify-between">
-            <h3 className="font-serif text-lg font-bold text-[#0B132B]">
-              Simulation Parameters
-            </h3>
+            <div>
+              <h3 className="font-serif text-lg font-bold text-[#0B132B]">
+                Policy Customisation
+              </h3>
+              <p className="text-[11px] text-slate-500">Choose plan, sum assured, tenure, and mode</p>
+            </div>
             <button
               onClick={() => {
+                setSelectedProductId('PRD-X4CBUF');
                 setCoverageAmount(baseResult.total_gross_protection_need || 10000000);
                 setPolicyTenure(20);
-                setMonthlyBudget(1500);
-                setInflationRate(6);
+                setPremiumPaymentTerm('regular');
+                setPremiumMode('monthly');
+                setSelectedRiders(['RDR-ACC-01']);
+                setMonthlyBudget(baseInput.monthly_budget || 2000);
+                setInflationRate(5.5);
               }}
               className="text-xs text-slate-500 hover:text-[#1D4ED8] flex items-center space-x-1 font-mono"
             >
@@ -157,13 +213,41 @@ export const WhatIfSimulator: React.FC<SimulatorProps> = ({
             </button>
           </div>
 
-          <div className="space-y-6">
+          <div className="space-y-5">
             
+            {/* Control 0: Product Select */}
+            <div className="space-y-1.5">
+              <label className="text-xs font-bold text-slate-700">
+                Select Insurance Product
+              </label>
+              <select
+                value={selectedProductId}
+                onChange={(e) => setSelectedProductId(e.target.value)}
+                className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-xs font-semibold text-[#0B132B] focus:border-[#1D4ED8] outline-none"
+              >
+                {catalogue.length > 0 ? (
+                  catalogue.map((p) => (
+                    <option key={p.product_id} value={p.product_id}>
+                      {p.name} ({p.product_category?.replace('_', ' ').toUpperCase()}) &bull; {p.product_id}
+                    </option>
+                  ))
+                ) : (
+                  <>
+                    <option value="PRD-X4CBUF">Saffron Term Shield (PRD-X4CBUF)</option>
+                    <option value="PRD-7W9ZKQ">Saffron Term Shield Plus (PRD-7W9ZKQ)</option>
+                    <option value="PRD-B2M8N1">Saffron Wealth Builder ULIP (PRD-B2M8N1)</option>
+                    <option value="PRD-C4D5E6">Saffron Guaranteed Future Endowment (PRD-C4D5E6)</option>
+                    <option value="PRD-D7E8F9">Saffron LifeGuard Whole Life (PRD-D7E8F9)</option>
+                  </>
+                )}
+              </select>
+            </div>
+
             {/* Slider 1: Coverage Amount */}
             <div className="space-y-2">
               <div className="flex items-center justify-between">
                 <label className="text-xs font-bold text-slate-700">
-                  Coverage Amount (Target Protection)
+                  Sum Assured (Life Cover)
                 </label>
                 <span className="font-mono text-sm font-bold text-[#1D4ED8]">
                   {formatINR(coverageAmount)}
@@ -181,112 +265,198 @@ export const WhatIfSimulator: React.FC<SimulatorProps> = ({
               <div className="flex justify-between text-[10px] text-slate-400 font-mono">
                 <span>₹ 25 Lakhs</span>
                 <span>₹ 1 Crore</span>
+                <span>₹ 2.5 Crores</span>
                 <span>₹ 5 Crores</span>
               </div>
             </div>
 
-            {/* Slider 2: Policy Tenure */}
-            <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <label className="text-xs font-bold text-slate-700">
-                  Policy Tenure
+            {/* Grid: Policy Tenure & PPT */}
+            <div className="grid grid-cols-2 gap-3">
+              {/* Policy Tenure */}
+              <div className="space-y-1.5">
+                <label className="text-xs font-bold text-slate-700 flex justify-between">
+                  <span>Policy Term</span>
+                  <span className="font-mono text-slate-500">{policyTenure} yrs</span>
                 </label>
-                <span className="font-mono text-sm font-bold text-[#0B132B]">
-                  {policyTenure} years
-                </span>
+                <select
+                  value={policyTenure}
+                  onChange={(e) => setPolicyTenure(Number(e.target.value))}
+                  className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs font-mono font-semibold text-[#0B132B] outline-none"
+                >
+                  {[10, 15, 20, 25, 30, 35, 40].map((t) => (
+                    <option key={t} value={t}>{t} Years</option>
+                  ))}
+                </select>
               </div>
-              <input
-                type="range"
-                min="10"
-                max="40"
-                step="5"
-                value={policyTenure}
-                onChange={(e) => setPolicyTenure(Number(e.target.value))}
-                className="w-full accent-[#1D4ED8] cursor-pointer"
-              />
-              <div className="flex justify-between text-[10px] text-slate-400 font-mono">
-                <span>10 Yrs</span>
-                <span>20 Yrs</span>
-                <span>30 Yrs</span>
-                <span>40 Yrs</span>
+
+              {/* Premium Payment Term */}
+              <div className="space-y-1.5">
+                <label className="text-xs font-bold text-slate-700">
+                  Payment Term (PPT)
+                </label>
+                <select
+                  value={premiumPaymentTerm}
+                  onChange={(e) => setPremiumPaymentTerm(e.target.value)}
+                  className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs font-mono font-semibold text-[#0B132B] outline-none"
+                >
+                  <option value="regular">Regular Pay</option>
+                  <option value="limited_5">Limited 5 Years</option>
+                  <option value="limited_10">Limited 10 Years</option>
+                  <option value="limited_15">Limited 15 Years</option>
+                </select>
               </div>
             </div>
 
-            {/* Slider 3: Monthly Insurance Budget */}
-            <div className="space-y-2">
-              <div className="flex items-center justify-between">
+            {/* Grid: Premium Mode & Monthly Budget */}
+            <div className="grid grid-cols-2 gap-3">
+              {/* Premium Mode */}
+              <div className="space-y-1.5">
                 <label className="text-xs font-bold text-slate-700">
-                  Monthly Premium Budget
+                  Payment Frequency
                 </label>
-                <span className="font-mono text-sm font-bold text-emerald-600">
-                  {formatINR(monthlyBudget)} / mo
-                </span>
+                <select
+                  value={premiumMode}
+                  onChange={(e) => setPremiumMode(e.target.value)}
+                  className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs font-mono font-semibold text-[#0B132B] outline-none"
+                >
+                  <option value="monthly">Monthly (Factor: 0.0875)</option>
+                  <option value="quarterly">Quarterly (Factor: 0.26)</option>
+                  <option value="half_yearly">Half-Yearly (Factor: 0.51)</option>
+                  <option value="annual">Annual (Factor: 1.0)</option>
+                </select>
               </div>
-              <input
-                type="range"
-                min="500"
-                max="10000"
-                step="250"
-                value={monthlyBudget}
-                onChange={(e) => setMonthlyBudget(Number(e.target.value))}
-                className="w-full accent-emerald-600 cursor-pointer"
-              />
-              <div className="flex justify-between text-[10px] text-slate-400 font-mono">
-                <span>₹ 500</span>
-                <span>₹ 1,500</span>
-                <span>₹ 5,000</span>
-                <span>₹ 10,000</span>
+
+              {/* Monthly Budget */}
+              <div className="space-y-1.5">
+                <label className="text-xs font-bold text-slate-700 flex justify-between">
+                  <span>My Budget</span>
+                  <span className="font-mono text-emerald-600 font-bold">{formatINR(monthlyBudget)}</span>
+                </label>
+                <input
+                  type="number"
+                  step="250"
+                  min="500"
+                  value={monthlyBudget}
+                  onChange={(e) => setMonthlyBudget(Number(e.target.value))}
+                  className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs font-mono font-semibold text-[#0B132B] outline-none"
+                />
               </div>
             </div>
 
-            {/* Slider 4: Inflation Assumption */}
-            <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <label className="text-xs font-bold text-slate-700">
-                  Inflation Assumption
-                </label>
-                <span className="font-mono text-sm font-bold text-amber-600">
-                  {inflationRate}% p.a.
-                </span>
-              </div>
-              <input
-                type="range"
-                min="3"
-                max="12"
-                step="0.5"
-                value={inflationRate}
-                onChange={(e) => setInflationRate(Number(e.target.value))}
-                className="w-full accent-amber-600 cursor-pointer"
-              />
-              <div className="flex justify-between text-[10px] text-slate-400 font-mono">
-                <span>3% (Low)</span>
-                <span>6% (Standard)</span>
-                <span>9% (High)</span>
-                <span>12%</span>
+            {/* Eligible Riders Multi-Toggle */}
+            <div className="space-y-2 pt-1 border-t border-slate-100">
+              <label className="text-xs font-bold text-slate-700 block">
+                Attach Additional Protective Riders
+              </label>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
+                {[
+                  { id: 'RDR-ACC-01', name: 'Accidental Death Rider', rate: '₹0.50 / 1k' },
+                  { id: 'RDR-CI-01', name: 'Critical Illness Benefit', rate: '₹1.25 / 1k' },
+                  { id: 'RDR-TPD-01', name: 'Permanent Disability Rider', rate: '₹0.35 / 1k' },
+                  { id: 'RDR-WOP-01', name: 'Waiver of Premium Rider', rate: '4% of Base' },
+                ].map((r) => {
+                  const isChecked = selectedRiders.includes(r.id);
+                  return (
+                    <label
+                      key={r.id}
+                      className={`flex items-center space-x-2 p-2.5 rounded-xl border cursor-pointer transition-colors ${
+                        isChecked ? 'bg-blue-50/70 border-blue-200 text-[#0B132B]' : 'bg-slate-50 border-slate-200 text-slate-600'
+                      }`}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={isChecked}
+                        onChange={() => {
+                          if (isChecked) {
+                            setSelectedRiders(selectedRiders.filter((id) => id !== r.id));
+                          } else {
+                            setSelectedRiders([...selectedRiders, r.id]);
+                          }
+                        }}
+                        className="accent-[#1D4ED8]"
+                      />
+                      <div className="truncate">
+                        <div className="font-semibold text-[11px] leading-tight truncate">{r.name}</div>
+                        <div className="text-[10px] text-slate-400 font-mono">{r.rate}</div>
+                      </div>
+                    </label>
+                  );
+                })}
               </div>
             </div>
 
           </div>
 
-          {/* Affordability Badge */}
-          <div className={`p-4 rounded-2xl border flex items-center justify-between ${
-            isBudgetSufficient 
-              ? 'bg-emerald-50/80 border-emerald-200 text-emerald-800' 
-              : 'bg-amber-50/80 border-amber-200 text-amber-800'
-          }`}>
-            <div className="space-y-0.5">
-              <div className="text-xs font-bold">
-                {isBudgetSufficient ? 'Budget Sufficient' : 'Budget Warning'}
+          {/* Real Premium Output Card */}
+          <div className="p-4 rounded-2xl bg-[#0B132B] text-white space-y-3 shadow-md">
+            <div className="flex items-center justify-between border-b border-slate-800 pb-2">
+              <div className="flex items-center space-x-2">
+                <ShieldCheck className="w-4 h-4 text-emerald-400" />
+                <span className="text-xs font-mono font-bold uppercase tracking-wider text-slate-300">
+                  Actuarial Quote Breakdown
+                </span>
               </div>
-              <div className="text-[11px] opacity-90">
-                Est. Premium: <span className="font-mono font-bold">{formatINR(estimatedMonthlyPremium)}/mo</span> vs. Budget <span className="font-mono font-bold">{formatINR(monthlyBudget)}/mo</span>
-              </div>
+              <span className="text-[10px] font-mono text-emerald-400 bg-emerald-950/60 px-2 py-0.5 rounded border border-emerald-800">
+                Live IRDAI Math
+              </span>
             </div>
-            <span className={`px-2.5 py-1 rounded-full text-xs font-bold font-mono ${
-              isBudgetSufficient ? 'bg-emerald-200 text-emerald-900' : 'bg-amber-200 text-amber-900'
+
+            {quoteLoading ? (
+              <div className="text-xs text-slate-400 py-2 font-mono animate-pulse">
+                Calculating exact rate from premium_rates.csv...
+              </div>
+            ) : quoteError ? (
+              <div className="text-xs text-amber-300 bg-amber-950/40 p-2.5 rounded-xl border border-amber-800 flex items-start space-x-2">
+                <AlertCircle className="w-4 h-4 shrink-0 text-amber-400 mt-0.5" />
+                <span>{quoteError}</span>
+              </div>
+            ) : quoteResult ? (
+              <div className="space-y-2 text-xs">
+                <div className="flex items-center justify-between">
+                  <span className="text-slate-400">Base Instalment ({quoteResult.premium_mode}):</span>
+                  <span className="font-mono font-bold text-white">{formatINR(quoteResult.base_instalment)}</span>
+                </div>
+                {quoteResult.riders && quoteResult.riders.length > 0 && (
+                  <div className="space-y-1 pl-2 border-l border-slate-800 text-[11px] text-slate-400">
+                    {quoteResult.riders.map((r) => (
+                      <div key={r.rider_id} className="flex items-center justify-between">
+                        <span>+ {r.rider_name}:</span>
+                        <span className="font-mono text-slate-300">{formatINR(r.instalment)}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                <div className="pt-2 border-t border-slate-800 flex items-center justify-between">
+                  <span className="font-semibold text-slate-200">Total Instalment ({quoteResult.premium_mode}):</span>
+                  <span className="font-mono text-base font-extrabold text-emerald-400">
+                    {formatINR(quoteResult.total_instalment)}
+                  </span>
+                </div>
+                <div className="text-[10px] text-slate-400 flex justify-between">
+                  <span>Modal Factor Applied: {quoteResult.modal_factor}</span>
+                  <span>Annual Equivalent: {formatINR(quoteResult.total_annual_payable || 0)}</span>
+                </div>
+              </div>
+            ) : null}
+
+            {/* Affordability Badge */}
+            <div className={`p-2.5 rounded-xl border flex items-center justify-between ${
+              isBudgetSufficient 
+                ? 'bg-emerald-950/40 border-emerald-800 text-emerald-200' 
+                : 'bg-amber-950/40 border-amber-800 text-amber-200'
             }`}>
-              {isBudgetSufficient ? `+${formatINR(budgetVariance)} Surplus` : `${formatINR(budgetVariance)} Deficit`}
-            </span>
+              <div className="text-[11px]">
+                <strong className="block">{isBudgetSufficient ? 'Within Selected Budget' : 'Exceeds Monthly Budget'}</strong>
+                <span className="opacity-80">
+                  Budget: {formatINR(monthlyBudget)} &bull; Premium: {formatINR(calculatedInstalment)}
+                </span>
+              </div>
+              <span className={`px-2 py-0.5 rounded text-[11px] font-bold font-mono ${
+                isBudgetSufficient ? 'bg-emerald-800 text-emerald-100' : 'bg-amber-800 text-amber-100'
+              }`}>
+                {isBudgetSufficient ? `+${formatINR(budgetVariance)} Surplus` : `${formatINR(budgetVariance)} Shortfall`}
+              </span>
+            </div>
           </div>
 
         </div>

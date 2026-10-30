@@ -47,9 +47,9 @@ const INITIAL_BENCHMARK_RESULT: CalculationResult = {
     high: 1500,
   },
   assumptions_used: {
-    inflation_rate: 0.06,
-    discount_rate: 0.08,
-    real_rate: 0.0189,
+    inflation_rate: 0.055,
+    discount_rate: 0.07,
+    real_rate: 0.0142,
     emergency_reserve_months: 6,
     family_expense_factor: 0.75,
     replacement_horizon_years: 15,
@@ -76,8 +76,8 @@ export function App() {
     topic: string;
   }>({
     isOpen: false,
-    appointmentCode: 'LS-AUG-1042',
-    advisorName: 'Priya Sharma',
+    appointmentCode: 'LW-APT-1042',
+    advisorName: 'Farah Siddiqui',
     topic: 'Comprehensive Life Insurance Review',
   });
 
@@ -91,8 +91,8 @@ export function App() {
   const handleOpenVideoRoom = (appointmentCode: string, advisorName: string, topic: string) => {
     setVideoRoomState({
       isOpen: true,
-      appointmentCode: appointmentCode || 'LS-AUG-1042',
-      advisorName: advisorName || 'Priya Sharma',
+      appointmentCode: appointmentCode || 'LW-APT-1042',
+      advisorName: advisorName || 'Farah Siddiqui',
       topic: topic || 'Life Insurance & Mortgage Protection Review',
     });
   };
@@ -251,7 +251,7 @@ export function App() {
         <button
           onClick={() => setIsChatOpen(true)}
           className="fixed bottom-6 right-6 z-40 py-2.5 px-4 rounded-full bg-[#0B132B] hover:bg-[#1D4ED8] text-white shadow-xl hover:shadow-2xl transition-all flex items-center space-x-2 group border border-slate-700 active:scale-95"
-          title="Open LifeSure Advisory Assistant"
+          title="Open LifeWise Advisory Assistant"
         >
           <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
           <MessageSquareText className="w-4 h-4 text-blue-400 group-hover:text-white transition-colors" />

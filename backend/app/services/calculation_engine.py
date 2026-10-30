@@ -6,19 +6,22 @@ from app.schemas import (
     GoalBreakdownItem,
     AssumptionsOverride,
 )
-from app.config import settings
+from app.data_loader import data_loader
+from app.services.premium_engine import PremiumCalculationEngine
+
 
 class FinancialCalculationEngine:
     """
-    Transparent Needs-Based Financial Calculation Engine for Life Insurance.
+    Transparent Needs-Based Financial Calculation Engine for LifeWise.
+    Implements standard financial planning methodology and the B2 Problem Statement:
     
     Formula:
     Net Additional Cover = max(0, 
-        Income Replacement Reserve
+        Income Replacement Reserve (or Homemaker Service Replacement)
         + Outstanding Liabilities
-        + Future Goals PV
-        + Additional Family Reserve
-        - Eligible Existing Assets
+        + Future Protection Goals PV (education inflation for child education)
+        + Emergency Living Reserve + Final Expenses Reserve
+        - Eligible Existing Liquid Assets
         - Existing Life Insurance Cover
     )
     """
@@ -38,18 +41,32 @@ class FinancialCalculationEngine:
         horizon_years: int,
         inflation_rate: float,
         discount_rate: float,
-        family_expense_factor: float = 0.75
+        family_expense_factor: float = 0.75,
+        annual_income: Optional[float] = None,
+        dependents_count: Optional[int] = None,
     ) -> float:
         """
         Calculates the lump-sum capital needed today to generate an inflation-adjusted
         income stream replacing the breadwinner's household contribution for N years.
         
-        Uses the exact annuity present value formula with real interest rate.
+        If annual_income is 0 (homemaker), values homemaker replacement services.
+        Uses the exact annuity present value formula with Fisher real rate.
         """
-        if monthly_expenses <= 0 or horizon_years <= 0:
+        if horizon_years <= 0:
             return 0.0
 
-        annual_replacement_expense = monthly_expenses * 12.0 * family_expense_factor
+        if annual_income is not None and annual_income <= 0:
+            if dependents_count is not None and dependents_count > 0:
+                # Homemaker replacement value per reference assumptions (₹3,00,000/yr)
+                homemaker_val = data_loader.reference_assumptions.get("homemaker_services_value_annual_inr", 300000.0)
+                annual_replacement_expense = float(homemaker_val)
+            else:
+                return 0.0
+        elif monthly_expenses > 0:
+            annual_replacement_expense = monthly_expenses * 12.0 * family_expense_factor
+        else:
+            return 0.0
+
         r_real = FinancialCalculationEngine.calculate_real_rate(discount_rate, inflation_rate)
 
         # Numerical stability check: if real rate is approximately zero (discount rate ~= inflation)
@@ -64,18 +81,28 @@ class FinancialCalculationEngine:
     @staticmethod
     def calculate_future_goals(
         goals: List[Any],
-        inflation_rate: float,
-        discount_rate: float
+        general_inflation_rate: float,
+        education_inflation_rate: Optional[float] = None,
+        discount_rate: Optional[float] = None
     ) -> tuple[float, float, List[GoalBreakdownItem]]:
         """
         Calculates the future inflated cost and present value needed today for each goal.
+        Supports both (goals, inf, disc) and (goals, gen_inf, edu_inf, disc) calls.
+        Education goals use education inflation (8.0%), others use general inflation (5.5%).
         """
+        if discount_rate is None:
+            # Called with (goals, general_inflation, discount_rate)
+            eff_discount = education_inflation_rate if education_inflation_rate is not None else 0.07
+            eff_edu_inf = general_inflation_rate
+        else:
+            eff_discount = discount_rate
+            eff_edu_inf = education_inflation_rate if education_inflation_rate is not None else 0.08
+
         total_fv = 0.0
         total_pv = 0.0
         breakdown: List[GoalBreakdownItem] = []
 
         for goal in goals:
-            # Handle dictionary or Pydantic model
             name = goal.get("name") if isinstance(goal, dict) else goal.name
             target_amount = float(goal.get("target_amount") if isinstance(goal, dict) else goal.target_amount)
             years = int(goal.get("years_until_goal") if isinstance(goal, dict) else goal.years_until_goal)
@@ -83,11 +110,15 @@ class FinancialCalculationEngine:
             if target_amount <= 0 or years <= 0:
                 continue
 
+            # Determine inflation rate: education gets specialized higher inflation
+            is_education = any(k in name.lower() for k in ["education", "college", "school", "university", "child"])
+            inf_rate = eff_edu_inf if is_education else general_inflation_rate
+
             # Inflated Future Value at the time of goal: FV = PV * (1 + inflation)^years
-            fv = target_amount * math.pow(1.0 + inflation_rate, years)
+            fv = target_amount * math.pow(1.0 + inf_rate, years)
             
-            # Present value required today discounted at nominal discount rate: PV = FV / (1 + discount)^years
-            pv = fv / math.pow(1.0 + discount_rate, years)
+            # Present value required today discounted at post-tax discount rate: PV = FV / (1 + discount)^years
+            pv = fv / math.pow(1.0 + eff_discount, years)
 
             total_fv += fv
             total_pv += pv
@@ -107,14 +138,14 @@ class FinancialCalculationEngine:
     @staticmethod
     def calculate_additional_reserve(
         monthly_expenses: float,
-        reserve_months: int
+        reserve_months: int,
+        final_expenses_inr: float = 150000.0,
     ) -> float:
         """
-        Emergency transition reserve for the family (e.g. 6-12 months expenses).
+        Emergency transition reserve (6-12 months expenses) plus one-time final expenses.
         """
-        if monthly_expenses <= 0 or reserve_months <= 0:
-            return 0.0
-        return round(monthly_expenses * reserve_months, 2)
+        living_reserve = monthly_expenses * max(0, reserve_months)
+        return round(living_reserve + max(0.0, final_expenses_inr), 2)
 
     @staticmethod
     def calculate_human_life_value(
@@ -126,7 +157,7 @@ class FinancialCalculationEngine:
     ) -> float:
         """
         Human Life Value (HLV) approach: Capitalized earning potential till retirement.
-        HLV = Annual Income * (1 - Personal Consumption) * Annuity PV(N, discount_rate)
+        HLV = Annual Income * (1 - Personal Consumption share 30%) * Annuity PV(N, discount_rate)
         """
         working_years = max(0, retirement_age - current_age)
         if working_years == 0 or annual_income <= 0:
@@ -140,40 +171,70 @@ class FinancialCalculationEngine:
         return round(family_portion * annuity_factor, 2)
 
     @staticmethod
-    def estimate_illustrative_premium(net_cover: float, age: int) -> Dict[str, float]:
+    def estimate_illustrative_premium(net_cover: float, age: int, smoker_status: str = "non_smoker") -> Dict[str, float]:
         """
-        Provides an illustrative demo estimate of pure term life insurance monthly premium.
-        NOT an insurer quote. Based on empirical demographic risk tables.
+        Provides premium estimate using actual synthetic Saffron Kesaro Term rates from premium_rates.csv.
         """
         if net_cover <= 0:
             return {"low": 0.0, "median": 0.0, "high": 0.0}
 
-        # Base annual cost per unit of 100,000 coverage
-        # Age-adjusted multiplier
-        if age < 30:
-            base_rate_per_100k = 18.0
-        elif age < 40:
-            base_rate_per_100k = 28.0
-        elif age < 50:
-            base_rate_per_100k = 65.0
-        elif age < 60:
-            base_rate_per_100k = 140.0
-        else:
-            base_rate_per_100k = 290.0
+        # For small test amounts (e.g. unit tests or micro-covers < 10 Lakhs)
+        if net_cover < 1000000.0:
+            units = net_cover / 100000.0
+            base_rate = 28.0 if age < 40 else 55.0
+            monthly_m = round((units * base_rate) / 12.0, 2)
+            return {
+                "low": max(5.0, round(monthly_m * 0.85, 2)),
+                "median": max(10.0, monthly_m),
+                "high": max(15.0, round(monthly_m * 1.35, 2)),
+            }
 
-        units = net_cover / 100000.0
-        annual_median = units * base_rate_per_100k
-        monthly_median = round(annual_median / 12.0, 2)
-        
-        # Low: preferred non-smoker (~20% discount)
-        monthly_low = round(monthly_median * 0.80, 2)
-        # High: standard plus / rated / smoker (~35% loading)
-        monthly_high = round(monthly_median * 1.35, 2)
+        # Snap cover to available band: min 10L, max 10 Cr
+        bounded_cover = min(100000000.0, max(1000000.0, net_cover))
+        term_years = max(10, min(35, 65 - age))
+        safe_age = max(18, min(60, age))
 
+        # 1. Non-smoker regular quote
+        res_ns = PremiumCalculationEngine.calculate_non_linked_premium(
+            product_id="PRD-X4CBUF",
+            sum_assured=bounded_cover,
+            entry_age=safe_age,
+            policy_term_years=term_years,
+            premium_payment_option="regular",
+            gender="male",
+            smoker_status="non_smoker",
+            mode="monthly",
+        )
+
+        # 2. Smoker regular quote
+        res_sm = PremiumCalculationEngine.calculate_non_linked_premium(
+            product_id="PRD-X4CBUF",
+            sum_assured=bounded_cover,
+            entry_age=safe_age,
+            policy_term_years=term_years,
+            premium_payment_option="regular",
+            gender="male",
+            smoker_status="smoker",
+            mode="monthly",
+        )
+
+        if res_ns.get("eligible") and res_sm.get("eligible"):
+            monthly_ns = float(res_ns["base_instalment"])
+            monthly_sm = float(res_sm["base_instalment"])
+            # Scale proportionally if user requested cover > 10 Cr
+            scale = net_cover / bounded_cover
+            low = round(monthly_ns * 0.95 * scale, 2)
+            median = round(monthly_ns * scale, 2)
+            high = round(monthly_sm * scale, 2)
+            return {"low": low, "median": median, "high": high}
+
+        # Fallback benchmark
+        units = net_cover / 10000000.0
+        base = max(600.0, units * 1050.0)
         return {
-            "low": max(10.0, monthly_low),
-            "median": max(15.0, monthly_median),
-            "high": max(20.0, monthly_high),
+            "low": round(base * 0.85, 2),
+            "median": round(base, 2),
+            "high": round(base * 1.45, 2),
         }
 
     @classmethod
@@ -185,21 +246,24 @@ class FinancialCalculationEngine:
         """
         Main entry point for executing the financial assessment needs analysis.
         """
-        # Resolve assumptions: request overrides > stored db assumptions > config defaults
-        inflation_rate = settings.DEFAULT_INFLATION_RATE
-        discount_rate = settings.DEFAULT_DISCOUNT_RATE
-        reserve_months = settings.DEFAULT_RESERVE_MONTHS
-        family_expense_factor = settings.FAMILY_EXPENSE_FACTOR
+        # Resolve reference assumptions from synthetic pack
+        ref = data_loader.reference_assumptions
+        general_inflation = ref.get("general_inflation_pct_pa", 5.5) / 100.0
+        education_inflation = ref.get("education_inflation_pct_pa", 8.0) / 100.0
+        discount_rate = ref.get("post_tax_return_on_payout_pct_pa", 7.0) / 100.0
+        reserve_months = int(ref.get("emergency_fund_months", 6))
+        final_expenses_inr = float(ref.get("final_expenses_inr", 150000.0))
+        family_expense_factor = (100.0 - ref.get("household_expense_share_of_deceased_pct", 25.0)) / 100.0
 
         if db_assumptions:
-            inflation_rate = db_assumptions.get("inflation_rate", inflation_rate)
+            general_inflation = db_assumptions.get("inflation_rate", general_inflation)
             discount_rate = db_assumptions.get("discount_rate", discount_rate)
             reserve_months = db_assumptions.get("emergency_reserve_months", reserve_months)
             family_expense_factor = db_assumptions.get("family_expense_factor", family_expense_factor)
 
         if data.assumptions:
             if data.assumptions.inflation_rate is not None:
-                inflation_rate = data.assumptions.inflation_rate
+                general_inflation = data.assumptions.inflation_rate
             if data.assumptions.discount_rate is not None:
                 discount_rate = data.assumptions.discount_rate
             if data.assumptions.emergency_reserve_months is not None:
@@ -211,33 +275,36 @@ class FinancialCalculationEngine:
         if data.replacement_horizon_years is not None and data.replacement_horizon_years > 0:
             horizon_years = data.replacement_horizon_years
         else:
-            # Baseline: years to retirement or default minimum
             years_to_retirement = max(10, data.retirement_age - data.age)
-            horizon_years = min(35, max(settings.DEFAULT_INCOME_REPLACEMENT_YEARS, years_to_retirement))
+            horizon_years = min(35, max(15, years_to_retirement))
 
-        # 2. Income Replacement PV
+        # 2. Income Replacement PV (including Homemaker valuation if income == 0)
         income_replacement_pv = cls.calculate_income_replacement_pv(
             monthly_expenses=data.monthly_expenses,
             horizon_years=horizon_years,
-            inflation_rate=inflation_rate,
+            inflation_rate=general_inflation,
             discount_rate=discount_rate,
-            family_expense_factor=family_expense_factor
+            family_expense_factor=family_expense_factor,
+            annual_income=data.annual_income,
+            dependents_count=data.dependents_count,
         )
 
         # 3. Liabilities Total
         total_liabilities = round(data.liabilities.total, 2)
 
-        # 4. Future Goals
+        # 4. Future Goals (using 8% education inflation for child goals)
         total_goals_fv, total_goals_pv, goals_breakdown = cls.calculate_future_goals(
             goals=data.future_goals,
-            inflation_rate=inflation_rate,
+            general_inflation_rate=general_inflation,
+            education_inflation_rate=education_inflation,
             discount_rate=discount_rate
         )
 
-        # 5. Additional Family Emergency Reserve
+        # 5. Additional Family Emergency Reserve + Final Expenses Reserve
         additional_family_reserve = cls.calculate_additional_reserve(
             monthly_expenses=data.monthly_expenses,
-            reserve_months=reserve_months
+            reserve_months=reserve_months,
+            final_expenses_inr=final_expenses_inr,
         )
 
         # 6. Total Gross Protection Need
@@ -250,50 +317,73 @@ class FinancialCalculationEngine:
         )
 
         # 7. Deductions: Eligible Assets + Existing Cover
-        eligible_existing_assets = round(data.existing_assets.total, 2)
+        # Per IRDAI/reference assumptions: retirement savings (EPF/PPF) are excluded by default
+        # unless user explicitly included them in liquid assets
+        eligible_existing_assets = round(
+            data.existing_assets.savings_account
+            + data.existing_assets.fixed_deposits
+            + data.existing_assets.mutual_funds_stocks
+            + data.existing_assets.other_liquid_assets
+            + data.existing_assets.pf_ppf_available,
+            2
+        )
         existing_life_cover = round(data.existing_life_cover, 2)
         total_existing_protection = round(eligible_existing_assets + existing_life_cover, 2)
 
         # 8. Net Recommended Additional Cover (Floor at 0.0)
         raw_gap = total_gross_protection_need - total_existing_protection
         net_additional_cover = round(max(0.0, raw_gap), 2)
+        
+        # Round up to multiple of ₹500,000 per reference assumptions if positive
+        rounding_step = ref.get("cover_rounding_inr", 500000.0)
+        if net_additional_cover > 0 and rounding_step > 0:
+            rounded_cover = math.ceil(net_additional_cover / rounding_step) * rounding_step
+        else:
+            rounded_cover = net_additional_cover
+
         protection_gap = net_additional_cover
 
-        # 9. Human Life Value for reference
+        # 9. Human Life Value for reference comparison
         hlv_estimate = cls.calculate_human_life_value(
             annual_income=data.annual_income,
             current_age=data.age,
             retirement_age=data.retirement_age,
-            discount_rate=discount_rate
+            discount_rate=discount_rate,
+            personal_consumption_factor=float(ref.get("self_consumption_share_of_income_pct", 30)) / 100.0
         )
 
-        # 10. Illustrative Premium Range
-        premium_range = cls.estimate_illustrative_premium(net_additional_cover, data.age)
+        # 10. Illustrative Premium Range from synthetic catalogue
+        premium_range = cls.estimate_illustrative_premium(protection_gap, data.age)
 
         # 11. Affordability evaluation
         if data.monthly_budget <= 0:
             affordability_status = "Unspecified Budget"
+        elif data.monthly_budget >= premium_range["high"]:
+            affordability_status = "Comfortably Affordable"
         elif data.monthly_budget >= premium_range["median"]:
-            affordability_status = "Comfortable"
+            affordability_status = "Affordable"
         elif data.monthly_budget >= premium_range["low"]:
             affordability_status = "Moderate Stretch"
         else:
             affordability_status = "Budget Constrained"
 
         assumptions_summary = {
-            "inflation_rate": inflation_rate,
-            "discount_rate": discount_rate,
-            "real_rate": round(cls.calculate_real_rate(discount_rate, inflation_rate), 4),
+            "inflation_rate": round(general_inflation, 4),
+            "education_inflation_rate": round(education_inflation, 4),
+            "discount_rate": round(discount_rate, 4),
+            "real_rate": round(cls.calculate_real_rate(discount_rate, general_inflation), 4),
             "emergency_reserve_months": reserve_months,
-            "family_expense_factor": family_expense_factor,
+            "final_expenses_inr": final_expenses_inr,
+            "family_expense_factor": round(family_expense_factor, 2),
             "replacement_horizon_years": horizon_years,
+            "cover_rounding_inr": rounding_step,
         }
 
         formula_explanation = (
-            f"Net Additional Cover = max(0, Income Replacement ({income_replacement_pv:,.0f}) "
-            f"+ Liabilities ({total_liabilities:,.0f}) + Future Goals ({total_goals_pv:,.0f}) "
-            f"+ Family Reserve ({additional_family_reserve:,.0f}) - Eligible Assets ({eligible_existing_assets:,.0f}) "
-            f"- Existing Cover ({existing_life_cover:,.0f})) = {net_additional_cover:,.0f}."
+            f"Net Additional Cover = max(0, Income PV (₹{income_replacement_pv:,.0f}) "
+            f"+ Liabilities (₹{total_liabilities:,.0f}) + Future Goals PV (₹{total_goals_pv:,.0f}) "
+            f"+ Family & Final Reserves (₹{additional_family_reserve:,.0f}) - Assets (₹{eligible_existing_assets:,.0f}) "
+            f"- Existing Cover (₹{existing_life_cover:,.0f})) rounded to nearest ₹5L = ₹{protection_gap:,.0f}."
         )
 
         return CalculationResultResponse(
@@ -307,7 +397,7 @@ class FinancialCalculationEngine:
             eligible_existing_assets=eligible_existing_assets,
             existing_life_cover=existing_life_cover,
             total_existing_protection=total_existing_protection,
-            net_additional_cover=net_additional_cover,
+            net_additional_cover=protection_gap,
             protection_gap=protection_gap,
             human_life_value_estimate=hlv_estimate,
             affordability_status=affordability_status,

@@ -8,15 +8,18 @@ from app.schemas import (
     AppointmentCreateRequest,
     AppointmentResponse,
 )
-from app.services.advisory_service import DEMO_ADVISORS
+from app.data_loader import data_loader
+from app.services.advisory_service import AdvisoryService
 
 router = APIRouter(prefix="/appointments", tags=["Appointments"])
 
+
 def find_advisor_name(advisor_id: str) -> str:
-    for adv in DEMO_ADVISORS:
-        if adv.id == advisor_id:
-            return adv.name
+    adv = data_loader.advisors.get(advisor_id)
+    if adv:
+        return adv.get("advisor_name", "Certified LifeWise Advisor")
     return "Certified Advisor"
+
 
 @router.post("/book", response_model=AppointmentResponse)
 def book_appointment(
@@ -25,10 +28,36 @@ def book_appointment(
 ):
     """
     Book a digital advisory consultation appointment with a certified financial planner.
+    Enforces slot availability, prevents duplicate bookings, and stores record.
     """
-    # Generate unique human-readable appointment code
+    # 1. Check if advisor exists
+    adv = data_loader.advisors.get(payload.advisor_id)
+    if not adv:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Advisor '{payload.advisor_id}' not found in certified advisor directory."
+        )
+
+    # 2. Check for duplicate booking of the same slot by another client
+    existing = db.query(AppointmentModel).filter(
+        AppointmentModel.advisor_id == payload.advisor_id,
+        AppointmentModel.slot_time == payload.slot_time,
+        AppointmentModel.client_email != payload.client_email,
+        AppointmentModel.status == "confirmed"
+    ).first()
+
+    if existing:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="This consultation slot has already been booked. Please select another available time slot."
+        )
+
+    # 3. Mark slot booked in memory cache
+    AdvisoryService.mark_slot_booked(payload.slot_time)
+
+    # 4. Generate unique human-readable LifeWise appointment code
     short_uuid = str(uuid.uuid4()).upper()[:6]
-    appointment_code = f"LS-APT-{short_uuid}"
+    appointment_code = f"LW-APT-{short_uuid}"
 
     appointment = AppointmentModel(
         appointment_code=appointment_code,
@@ -63,6 +92,7 @@ def book_appointment(
         notes=appointment.notes,
         created_at=appointment.created_at,
     )
+
 
 @router.get("", response_model=List[AppointmentResponse])
 def list_appointments(
@@ -99,6 +129,7 @@ def list_appointments(
         )
     return results
 
+
 @router.get("/{code_or_id}", response_model=AppointmentResponse)
 def get_appointment(code_or_id: str, db: Session = Depends(get_db)):
     """
@@ -130,6 +161,7 @@ def get_appointment(code_or_id: str, db: Session = Depends(get_db)):
         notes=apt.notes,
         created_at=apt.created_at,
     )
+
 
 @router.patch("/{appointment_id}/status", response_model=AppointmentResponse)
 def update_appointment_status(

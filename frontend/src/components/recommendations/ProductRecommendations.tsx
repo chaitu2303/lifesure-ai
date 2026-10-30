@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   ShieldCheck,
   CheckCircle2,
@@ -17,6 +17,9 @@ import {
 } from 'lucide-react';
 import { CalculationResult, AssessmentInput } from '../../types';
 import { formatINR } from '../../utils/formatters';
+import { api } from '../../services/api';
+import { ProductComparisonModal } from './ProductComparisonModal';
+import { PolicyRiskAnalysisModal } from './PolicyRiskAnalysisModal';
 
 interface Props {
   result: CalculationResult;
@@ -54,6 +57,8 @@ export const ProductRecommendations: React.FC<Props> = ({
   const [activeCategory, setActiveCategory] = useState<string>('all');
   const [viewMode, setViewMode] = useState<'cards' | 'table'>('cards');
   const [selectedProduct, setSelectedProduct] = useState<ProductDetails | null>(null);
+  const [riskAuditProduct, setRiskAuditProduct] = useState<ProductDetails | null>(null);
+  const [isComparisonModalOpen, setIsComparisonModalOpen] = useState<boolean>(false);
 
   const coverageGap = result.net_additional_cover || 6500000;
 
@@ -160,9 +165,57 @@ export const ProductRecommendations: React.FC<Props> = ({
     },
   ];
 
+  const [recommendedList, setRecommendedList] = useState<ProductDetails[]>(products);
+
+  useEffect(() => {
+    api.getRecommendations(input).then((res) => {
+      if (res && res.all_recommendations && res.all_recommendations.length > 0) {
+        const mapped: ProductDetails[] = res.all_recommendations.map((p) => {
+          let badge = 'Eligible Plan';
+          let badgeColor = 'bg-blue-50 text-[#1D4ED8] border-blue-200';
+          if (p.is_primary) {
+            badge = 'Highest Suitability';
+            badgeColor = 'bg-emerald-50 text-emerald-700 border-emerald-200';
+          } else if (p.category === 'term') {
+            badge = 'Pure Protection';
+            badgeColor = 'bg-blue-50 text-[#1D4ED8] border-blue-200';
+          } else if (p.category === 'ulip') {
+            badge = 'Market Linked';
+            badgeColor = 'bg-purple-50 text-purple-700 border-purple-200';
+          } else if (p.category === 'endowment') {
+            badge = 'Guaranteed Savings';
+            badgeColor = 'bg-amber-50 text-amber-700 border-amber-200';
+          } else if (p.category === 'whole_life') {
+            badge = 'Lifetime Estate';
+            badgeColor = 'bg-indigo-50 text-indigo-700 border-indigo-200';
+          }
+
+          return {
+            id: p.product_id,
+            category: (p.category || 'term') as any,
+            name: p.name,
+            badge,
+            badgeColor,
+            tagline: p.tagline || p.headline_reason || 'Actuarially verified policy option.',
+            monthlyPremium: p.illustrative_monthly_cost || 1200,
+            coverRange: p.category === 'term' ? '₹ 25L – ₹ 5 Cr' : '₹ 5L – ₹ 1 Cr',
+            tenure: p.category === 'whole_life' ? 'Up to age 100' : '10–40 years',
+            costRating: p.cost_rating || 'Moderate',
+            nature: p.category_label || p.category.toUpperCase(),
+            bestFor: p.ideal_for || 'Insuring financial dependants',
+            bullets: p.fit_reasons || [],
+            tradeOffs: p.trade_offs || [],
+            suitabilityScore: p.suitability_score || 80,
+          };
+        });
+        setRecommendedList(mapped);
+      }
+    }).catch((err) => console.warn('Could not fetch recommendations:', err));
+  }, [input]);
+
   const filteredProducts = activeCategory === 'all' 
-    ? products 
-    : products.filter(p => p.category === activeCategory);
+    ? recommendedList 
+    : recommendedList.filter(p => p.category === activeCategory);
 
   return (
     <div className="space-y-8 max-w-6xl mx-auto">
@@ -184,27 +237,37 @@ export const ProductRecommendations: React.FC<Props> = ({
         </div>
 
         {/* View Switcher: Cards vs Table */}
-        <div className="flex items-center space-x-2 bg-slate-100 p-1 rounded-xl border border-slate-200">
+        <div className="flex items-center space-x-2">
           <button
-            onClick={() => setViewMode('cards')}
-            className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
-              viewMode === 'cards'
-                ? 'bg-white text-[#0B132B] shadow-xs'
-                : 'text-slate-600 hover:text-[#0B132B]'
-            }`}
+            onClick={() => setIsComparisonModalOpen(true)}
+            className="flex items-center space-x-1.5 px-3 py-1.5 rounded-xl border border-blue-200 bg-blue-50/70 text-xs font-semibold text-[#1D4ED8] hover:bg-blue-100 transition-colors"
+            title="View complete category architecture breakdown"
           >
-            Product Cards
+            <Layers className="w-3.5 h-3.5" />
+            <span className="hidden sm:inline">Category Architecture</span>
           </button>
-          <button
-            onClick={() => setViewMode('table')}
-            className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
-              viewMode === 'table'
-                ? 'bg-white text-[#0B132B] shadow-xs'
-                : 'text-slate-600 hover:text-[#0B132B]'
-            }`}
-          >
-            Comparison Matrix
-          </button>
+          <div className="flex items-center space-x-2 bg-slate-100 p-1 rounded-xl border border-slate-200">
+            <button
+              onClick={() => setViewMode('cards')}
+              className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+                viewMode === 'cards'
+                  ? 'bg-white text-[#0B132B] shadow-xs'
+                  : 'text-slate-600 hover:text-[#0B132B]'
+              }`}
+            >
+              Product Cards
+            </button>
+            <button
+              onClick={() => setViewMode('table')}
+              className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+                viewMode === 'table'
+                  ? 'bg-white text-[#0B132B] shadow-xs'
+                  : 'text-slate-600 hover:text-[#0B132B]'
+              }`}
+            >
+              Comparison Matrix
+            </button>
+          </div>
         </div>
       </div>
 
@@ -291,13 +354,22 @@ export const ProductRecommendations: React.FC<Props> = ({
                   </div>
                 </div>
 
-                <button
-                  onClick={() => setSelectedProduct(prod)}
-                  className="w-full py-2.5 px-4 rounded-xl text-xs font-bold text-white bg-[#1D4ED8] hover:bg-[#1E40AF] transition-all shadow-sm flex items-center justify-center space-x-1.5 active:scale-95"
-                >
-                  <span>View Details</span>
-                  <ArrowRight className="w-3.5 h-3.5" />
-                </button>
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    onClick={() => setSelectedProduct(prod)}
+                    className="py-2.5 px-3 rounded-xl text-xs font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200 transition-all flex items-center justify-center space-x-1"
+                  >
+                    <span>View Plan</span>
+                  </button>
+                  <button
+                    onClick={() => setRiskAuditProduct(prod)}
+                    className="py-2.5 px-3 rounded-xl text-xs font-bold text-white bg-[#1D4ED8] hover:bg-[#1E40AF] transition-all shadow-xs flex items-center justify-center space-x-1 active:scale-95"
+                    title="Run 7-dimension risk audit and examine dataset evidence"
+                  >
+                    <Sparkles className="w-3 h-3 text-blue-200" />
+                    <span>AI Risk Audit</span>
+                  </button>
+                </div>
               </div>
 
             </div>
@@ -500,6 +572,30 @@ export const ProductRecommendations: React.FC<Props> = ({
 
           </div>
         </div>
+      )}
+
+      {/* Category Architecture Modal */}
+      <ProductComparisonModal
+        isOpen={isComparisonModalOpen}
+        onClose={() => setIsComparisonModalOpen(false)}
+      />
+
+      {/* 7-Dimension Policy Risk & Dataset Evidence Modal */}
+      {riskAuditProduct && (
+        <PolicyRiskAnalysisModal
+          isOpen={!!riskAuditProduct}
+          onClose={() => setRiskAuditProduct(null)}
+          productId={riskAuditProduct.id}
+          productName={riskAuditProduct.name}
+          category={riskAuditProduct.category}
+          customerAge={input.age || 30}
+          annualIncome={input.annual_income || 1200000}
+          monthlyBudget={input.monthly_budget || 2500}
+          sumAssured={coverageGap}
+          policyTerm={Math.max(10, Math.min(35, (input.retirement_age || 60) - (input.age || 30)))}
+          gender="male"
+          smokerStatus="non_smoker"
+        />
       )}
 
     </div>

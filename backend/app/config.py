@@ -3,15 +3,17 @@ from typing import List
 from pydantic_settings import BaseSettings
 
 class Settings(BaseSettings):
-    PROJECT_NAME: str = "LifeSure AI — Intelligent Life Insurance Needs Finder"
+    PROJECT_NAME: str = "LifeWise — Intelligent Life Insurance Needs Finder & Digital Advisory Platform"
+    TAGLINE: str = "Protect Today. Plan Tomorrow. Live Assured."
+    BRAND_VOICE: str = "LifeWise — Life Insurance, Made Understandable."
     VERSION: str = "1.0.0"
     API_PREFIX: str = "/api"
     
-    # Database URL: SQLite by default, easily swappable with PostgreSQL (e.g. postgresql://user:pass@localhost:5432/lifesure)
-    DATABASE_URL: str = os.getenv("DATABASE_URL", "sqlite:///./lifesure.db")
+    # Database URL: SQLite by default
+    DATABASE_URL: str = os.getenv("DATABASE_URL", "sqlite:///./lifewise.db")
     
     # Admin security
-    ADMIN_SECRET_KEY: str = os.getenv("ADMIN_SECRET_KEY", "lifesure-admin-key-2026")
+    ADMIN_SECRET_KEY: str = os.getenv("ADMIN_SECRET_KEY", "lifewise-admin-key-2026")
     
     # CORS
     CORS_ORIGINS: List[str] = [

@@ -76,7 +76,7 @@ export const EducationSection: React.FC<EducationSectionProps> = ({ onStartAsses
           {/* Right: Capital Needs Analysis */}
           <div className="border-2 border-[#1D4ED8] bg-white p-8 rounded-sm shadow-sm relative">
             <div className="absolute -top-3 right-6 bg-[#1D4ED8] text-white text-[10px] font-mono uppercase tracking-widest px-3 py-1 font-semibold rounded-sm">
-              LifeSure Standard
+              LifeWise Standard
             </div>
 
             <div className="flex items-center space-x-3 pb-5 mb-6 border-b border-[#E6E4DF]">

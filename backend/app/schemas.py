@@ -150,6 +150,21 @@ class RecommendationsResponse(BaseModel):
     methodology_note: str
 
 
+# --- Premium Quote Schemas ---
+
+class PremiumQuoteRequest(BaseModel):
+    product_id: str
+    sum_assured: float = Field(..., gt=0)
+    entry_age: int = Field(..., ge=18, le=80)
+    policy_term_years: int = Field(..., ge=1, le=50)
+    premium_payment_option: str = "regular"
+    gender: Literal["male", "female"] = "male"
+    smoker_status: Literal["non_smoker", "smoker"] = "non_smoker"
+    payment_mode: Literal["annual", "half_yearly", "quarterly", "monthly"] = "monthly"
+    selected_riders: Optional[List[Dict[str, Any]]] = None
+    annualised_premium: Optional[float] = None
+
+
 # --- Simulation Schemas ---
 
 class SimulationRequest(BaseModel):
@@ -248,7 +263,7 @@ class ChatMessageRequest(BaseModel):
 class ChatMessageResponse(BaseModel):
     reply: str
     suggested_followups: List[str]
-    disclaimer: str = "LifeSure AI provides educational insurance information only. It does not sell policies or give legally binding underwriting commitments."
+    disclaimer: str = "LifeWise provides educational insurance information only. It does not sell policies or give legally binding underwriting commitments."
 
 
 # --- Admin Schemas ---

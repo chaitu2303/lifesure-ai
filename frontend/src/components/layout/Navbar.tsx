@@ -72,7 +72,7 @@ export const Navbar: React.FC<NavbarProps> = ({
             </span>
           </div>
           <div className="flex items-center space-x-4 text-slate-400 font-serif italic text-xs">
-            <span>Protect Today. Thrive Tomorrow.</span>
+            <span>Protect Today. Plan Tomorrow. Live Assured.</span>
           </div>
         </div>
       </div>
@@ -96,10 +96,7 @@ export const Navbar: React.FC<NavbarProps> = ({
               <div className="flex flex-col">
                 <div className="flex items-baseline space-x-1">
                   <span className="font-serif text-2xl font-bold tracking-tight text-[#0B132B]">
-                    LifeSure
-                  </span>
-                  <span className="text-xl font-bold text-[#1D4ED8]">
-                    AI
+                    LifeWise
                   </span>
                 </div>
                 <span className="text-[9px] font-sans font-medium uppercase tracking-[0.18em] text-slate-500 -mt-1">
@@ -158,7 +155,7 @@ export const Navbar: React.FC<NavbarProps> = ({
               <button
                 onClick={() => setSearchOpen(true)}
                 className="p-2 text-slate-500 hover:text-[#0B132B] hover:bg-slate-100 rounded-full transition-colors"
-                title="Search LifeSure AI"
+                title="Search LifeWise"
                 aria-label="Search"
               >
                 <Search className="w-4 h-4" />

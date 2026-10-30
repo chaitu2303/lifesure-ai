@@ -1,201 +1,162 @@
 import re
+from datetime import datetime
 from typing import List, Dict, Any, Optional
 from app.schemas import ChatMessageResponse, AdvisorItem, AvailableSlot
+from app.data_loader import data_loader
 
-DEMO_ADVISORS = [
-    AdvisorItem(
-        id="adv-sarah-chen",
-        name="Sarah Chen, CFP®",
-        title="Senior Life & Family Protection Specialist",
-        credentials="CFP®, ChFC®, 14 yrs exp",
-        experience_years=14,
-        specialties=["Income Replacement", "Young Families", "Mortgage Protection", "Term Optimization"],
-        avatar_url="https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=150&auto=format&fit=crop&q=80",
-        bio="Specializes in transparent, fee-only protection planning for families, focusing on maximum protection per dollar and estate transitions.",
-        rating=4.95,
-        reviews_count=218
-    ),
-    AdvisorItem(
-        id="adv-marcus-vance",
-        name="Marcus Vance, ChFC®",
-        title="Wealth & Estate Preservation Advisor",
-        credentials="ChFC®, CLU®, 18 yrs exp",
-        experience_years=18,
-        specialties=["Estate Planning", "Whole Life & Trusts", "High Net Worth", "Business Succession"],
-        avatar_url="https://images.unsplash.com/photo-1560250097-0b93528c311a?w=150&auto=format&fit=crop&q=80",
-        bio="Advises multi-generational families and business owners on liquid wealth preservation, buy-sell agreements, and permanent life structures.",
-        rating=4.92,
-        reviews_count=184
-    ),
-    AdvisorItem(
-        id="adv-ananya-patel",
-        name="Ananya Patel, CFP®",
-        title="Child Education & Goal Protection Consultant",
-        credentials="CFP®, MBA (Finance), 11 yrs exp",
-        experience_years=11,
-        specialties=["Child Education Funds", "ULIP vs Term Analysis", "Retirement Transition", "Tax Efficiency"],
-        avatar_url="https://images.unsplash.com/photo-1580489944761-15a19d654956?w=150&auto=format&fit=crop&q=80",
-        bio="Passionately helps parents secure milestone educational goals, untangling complex insurance-cum-investment plans with pure mathematical rigor.",
-        rating=4.97,
-        reviews_count=165
-    )
-]
+# Current simulation baseline timestamp (IST): October 29, 2026
+CURRENT_SIMULATION_TIME = datetime(2026, 10, 29, 20, 41, 58)
 
 KNOWLEDGE_BASE = [
     {
-        "keywords": ["term", "term life", "pure term", "pure protection"],
+        "keywords": ["term", "term life", "pure term", "kesaro", "pure protection", "level term"],
         "reply": (
-            "**Term Life Insurance** provides pure financial protection for a fixed duration (typically 10 to 40 years). "
-            "If the insured passes away during the policy term, the full sum assured (death benefit) is paid out to nominated beneficiaries. "
-            "\n\n**Key Advantages:**\n"
-            "• Highest coverage per dollar: Costs a fraction of endowment or whole life plans.\n"
-            "• Ideal for income replacement and debt clearance during peak earning and dependent years.\n"
-            "\n**Important Trade-off:**\n"
-            "• There is no maturity payout or cash accumulation if you survive the policy term."
+            "**Term Life Insurance** provides pure financial protection for a fixed duration (typically 5 to 40 years). "
+            "If the insured passes away during the policy term, the full sum assured (death benefit) is paid to nominated beneficiaries.\n\n"
+            "**Saffron Life Term Plans in LifeWise:**\n"
+            "• **Saffron Kesaro Term (`PRD-X4CBUF`):** Flagship pure protection offering maximum sum assured per rupee, level term up to 40 years.\n"
+            "• **Saffron Kesaro Loan Cover (`PRD-24CQIR`):** Decreasing cover specifically structured to mirror an amortising home loan balance.\n"
+            "• **Saffron Kesaro Rising Cover (`PRD-KPBXLP`):** Increasing cover designed to combat lifestyle inflation over your career.\n"
+            "• **Saffron Kesaro Return (`PRD-VDIJSF`):** 100% Return of Premium (TROP) upon survival.\n"
+            "• **Saffron Kesaro Mini (`PRD-02YUOF`):** Small cover level term for first-time buyers with simplified underwriting.\n\n"
+            "**Key Trade-off:** Pure risk cover has no maturity payout unless you choose a Return-of-Premium variant."
         ),
         "followups": [
             "What happens if I outlive my term policy?",
-            "What are the best riders to add to term insurance?",
-            "How much term cover should I buy?"
+            "What are the best riders to add to Kesaro Term?",
+            "How does Kesaro Loan Cover protect my home mortgage?"
         ]
     },
     {
-        "keywords": ["ulip", "unit linked", "market", "wealth", "investment plan"],
+        "keywords": ["ulip", "unit linked", "varnex", "market", "wealth", "investment plan"],
         "reply": (
-            "A **Unit-Linked Insurance Plan (ULIP)** is a hybrid financial product that combines life cover with market-linked investments (equity, debt, or hybrid funds). "
-            "A portion of your premium pays for mortality risk, while the remainder is invested in market fund units.\n\n"
-            "**Key Considerations:**\n"
-            "• Potential for higher capital growth compared to traditional endowment plans.\n"
-            "• Fund switching flexibility between equity and debt.\n"
-            "• **Risk Disclosure:** Returns are market-driven and NOT guaranteed. They carry fund management charges and a mandatory 5-year lock-in."
+            "A **Unit-Linked Insurance Plan (ULIP)** combines life insurance with market-linked investments in equity, debt, or hybrid funds. "
+            "Part of your premium pays for mortality risk, while the remainder is invested into professionally managed units.\n\n"
+            "**Saffron Life ULIP Plans in LifeWise:**\n"
+            "• **Saffron Varnex Wealth (`PRD-UPERQ6`):** Regular pay wealth accumulation with fund switching flexibility.\n"
+            "• **Saffron Varnex Wealth Limited Pay (`PRD-OTOY8G`):** Limited pay (5, 7, 10 years) for accelerated wealth building.\n"
+            "• **Saffron Varnex Single Premium (`PRD-2WDWU3`):** One-time lump sum market deployment.\n\n"
+            "**Available Funds:** Equity (80-100% equity), Balanced (40-60% equity), Bond Fund, and Money Market Fund.\n"
+            "**Mandatory Rules:** 5-year lock-in period. Investment risk in investment portfolio is borne by the policyholder."
         ),
         "followups": [
-            "Should I buy Term + Mutual Funds or a ULIP?",
             "What are the charges in a ULIP?",
-            "What is the lock-in period for ULIPs?"
+            "Can I switch funds tax-free inside Saffron Varnex?",
+            "What is the difference between Term + Mutual Funds vs ULIP?"
         ]
     },
     {
-        "keywords": ["endowment", "guaranteed savings", "traditional", "money back"],
+        "keywords": ["endowment", "sanvela", "nanhika", "guaranteed savings", "child plan", "money back"],
         "reply": (
-            "An **Endowment Policy** is a traditional life insurance plan that pairs life cover with guaranteed or bonus-based savings. "
-            "It pays a lump sum either upon death during the term or upon policy maturity.\n\n"
-            "**Key Considerations:**\n"
-            "• Guaranteed capital preservation appealing to very conservative savers.\n"
-            "• High premium cost per unit of coverage: To get $1,000,000 of cover, endowment premiums can be 8x-12x higher than term insurance.\n"
-            "• Modest historical returns (typically 4.5% - 6% IRR), which may lag behind inflation."
+            "An **Endowment Plan** pairs life cover with guaranteed capital preservation or bonus-based savings, paying out either on death or upon policy maturity.\n\n"
+            "**Saffron Life Endowment Plans in LifeWise:**\n"
+            "• **Saffron Nanhika Child Plan (`PRD-7HLWPZ`):** Dedicated child education plan with built-in premium waiver on parental death.\n"
+            "• **Saffron Sanvela Guaranteed (`PRD-SD9E19`):** Non-participating guaranteed endowment unaffected by market swings.\n"
+            "• **Saffron Sanvela Money Back (`PRD-QZM4KL`):** Periodic liquidity survival payouts throughout the policy term.\n"
+            "• **Saffron Sanvela Par (`PRD-HJG1P7`):** Traditional participating endowment accruing annual reversionary bonuses."
         ),
         "followups": [
-            "Why is term insurance cheaper than endowment?",
-            "Can I surrender my endowment policy early?",
-            "How does bonus accrual work in endowment plans?"
+            "Why is term insurance cheaper than endowment plans?",
+            "How does Saffron Nanhika protect my child's college fund?",
+            "How do money-back survival benefits work?"
         ]
     },
     {
-        "keywords": ["whole life", "permanent", "lifelong", "estate"],
+        "keywords": ["whole life", "amarvel", "permanent", "lifelong", "estate", "legacy"],
         "reply": (
-            "**Whole Life Insurance** offers permanent death benefit protection up to age 99 or 100, combined with a cash value savings component that grows over time.\n\n"
-            "**Primary Use Cases:**\n"
-            "• Estate planning and legacy transfer to heirs.\n"
-            "• Supporting dependents with lifelong special needs.\n"
-            "• Guaranteed death benefit payout regardless of when death occurs (as long as premiums are maintained)."
+            "**Whole Life Insurance** provides permanent lifelong death benefit protection up to age 99 or 100, combined with cash value accrual.\n\n"
+            "**Saffron Life Whole Life Plans in LifeWise:**\n"
+            "• **Saffron Amarvel Guaranteed (`PRD-BWKM04`):** Guaranteed non-par whole life cover up to age 99 with limited pay (10, 15 years, or single).\n"
+            "• **Saffron Amarvel Par (`PRD-4V0ZZ7`):** Participating whole life up to age 100 with annual bonus accruals.\n\n"
+            "**Ideal For:** Estate planning, multi-generational wealth preservation, and supporting lifelong dependent family members."
         ),
         "followups": [
-            "Term life vs Whole life: which do I need?",
-            "Can I borrow against whole life cash value?",
-            "When does whole life insurance make sense?"
+            "When should I choose Whole Life over Term Life?",
+            "Can I take a loan against Saffron Amarvel cash value?",
+            "How does whole life help with generational wealth transfer?"
         ]
     },
     {
-        "keywords": ["inflation", "real return", "future cost"],
+        "keywords": ["rider", "riders", "critical illness", "accidental death", "waiver of premium", "terminal illness"],
         "reply": (
-            "**Inflation directly erodes purchasing power over time.** For instance, at 6% annual inflation, household living expenses "
-            "double roughly every 12 years. Similarly, a university education costing $50,000 today could cost over $120,000 in 15 years.\n\n"
-            "LifeSure AI incorporates the **Fisher real discount rate** in calculation, ensuring that future living expenses and college goals "
-            "are properly inflation-adjusted so your family is never left underfunded."
+            "**Saffron Life Optional Riders in LifeWise:**\n\n"
+            "1. **Accidental Death Benefit (`RDR-LUR23D`):** Extra death benefit payout if death is caused by an accident.\n"
+            "2. **Accidental Total & Permanent Disability (`RDR-I0Q2E6`):** Lump sum payout if accident causes permanent disability.\n"
+            "3. **Critical Illness Rider (`RDR-GRH8AS`):** Lump sum payout upon diagnosis of 20 listed severe illnesses (e.g. cancer, stroke, heart attack).\n"
+            "4. **Waiver of Premium (`RDR-XBHTE9`):** All future premiums waived upon disability or critical illness while policy remains active.\n"
+            "5. **Terminal Illness Benefit (`RDR-ZG7SVA`):** Built-in free benefit paying up to ₹2 Crore early if life expectancy is under 6 months.\n\n"
+            "**Statutory Limits:** Health riders capped at 100% of base annual premium; all other riders together capped at 30%."
         ),
         "followups": [
-            "What inflation rate does LifeSure use?",
-            "How does LifeSure calculate income replacement?",
-            "What is the Fisher real discount rate formula?"
+            "What is the 30% rider premium cap?",
+            "How does the Waiver of Premium rider work?",
+            "Is Terminal Illness benefit free on Saffron Kesaro?"
         ]
     },
     {
-        "keywords": ["rider", "riders", "critical illness", "accidental", "waiver of premium"],
+        "keywords": ["formula", "calculation", "how do you calculate", "methodology", "needs based", "hlv", "human life value"],
         "reply": (
-            "**Insurance Riders** are optional add-on benefits attached to your base policy for comprehensive protection:\n\n"
-            "1. **Critical Illness Rider:** Pays an accelerated or additional lump sum upon diagnosis of specified illnesses (e.g., cancer, stroke, heart attack).\n"
-            "2. **Accidental Disability Rider:** Provides financial relief if permanent disability hampers your earning ability.\n"
-            "3. **Waiver of Premium:** Waives future premium obligations if you suffer total disability or critical illness, keeping coverage in force."
+            "LifeWise uses an actuarially grounded **Needs-Based Approach**:\n\n"
+            "**Net Additional Cover = max(0,**\n"
+            "  + PV of Future Family Support Needs (Income Replacement via Fisher Real Rate)\n"
+            "  + Eligible Outstanding Liabilities (Home loans, personal loans, vehicle loans)\n"
+            "  + Future Protection Goals PV (inflated at 8% for education, 5.5% for others)\n"
+            "  + Emergency Reserve (6 months expenses) + Final Expenses (₹1.5 Lakh)\n"
+            "  - Eligible Liquid Assets (Savings, FDs, mutual funds; excluding retirement funds)\n"
+            "  - Existing Individual Life Cover\n"
+            "**)** rounded to nearest ₹5 Lakh.\n\n"
+            "We also calculate **Human Life Value (HLV)** as a comparison benchmark, capitalising future earnings net of personal consumption."
         ),
         "followups": [
-            "Is critical illness rider worth it?",
-            "Does waiver of premium increase policy cost significantly?",
-            "Can I add riders later after buying a policy?"
+            "Why are retirement savings excluded from available assets?",
+            "What is the Fisher real discount rate formula?",
+            "How does Human Life Value differ from Net Needs?"
         ]
     },
     {
-        "keywords": ["formula", "calculation", "how do you calculate", "methodology", "needs based"],
+        "keywords": ["inflation", "discount rate", "fisher", "assumptions"],
         "reply": (
-            "LifeSure AI uses the internationally recognized **Capital Needs Analysis** methodology:\n\n"
-            "**Net Recommended Cover = max(0,**\n"
-            "  + Income Replacement Reserve (Present Value of family living expenses)\n"
-            "  + Outstanding Liabilities (Home loans, auto loans, personal debt)\n"
-            "  + Future Goals PV (Children's higher education & milestones)\n"
-            "  + Additional Family Reserve (6-12 months emergency transition buffer)\n"
-            "  - Eligible Liquid Assets (Savings, stocks, liquid mutual funds)\n"
-            "  - Existing Life Insurance Death Benefit\n"
-            "**)**\n\n"
-            "This ensures you never overpay for unnecessary cover or remain dangerously exposed to underinsurance."
+            "**Inflation and Discount Assumptions in LifeWise:**\n\n"
+            "• **General Inflation:** 5.5% per annum for ordinary living expenses.\n"
+            "• **Education Inflation:** 8.0% per annum (higher historical rate for college and school expenses).\n"
+            "• **Discount Rate:** 7.0% per annum (post-tax conservative return on payout invested safely).\n"
+            "• **Fisher Real Rate:** `(Discount Rate - Inflation) / (1 + Inflation)`. At 7% discount and 5.5% inflation, the real rate is ~1.42%.\n\n"
+            "All assumptions are fully configurable in the assessment and what-if simulator."
         ),
         "followups": [
-            "Why do you exclude primary residence from liquid assets?",
-            "How do you calculate present value of income replacement?",
-            "What is Human Life Value (HLV)?"
-        ]
-    },
-    {
-        "keywords": ["smoker", "medical", "underwriting", "health"],
-        "reply": (
-            "**Underwriting** is how insurance carriers assess actuarial risk:\n"
-            "• **Tobacco / Nicotine Use:** Tobacco users typically pay 40% to 70% higher premiums due to elevated cardiovascular and oncological risks.\n"
-            "• **Medical Examination:** Routine tele-medical or physical health checkups (blood test, ECG, lipid profile) verify current health status.\n"
-            "• **Disclosure Rule:** Complete, honest disclosure of medical history and habits is vital. Non-disclosure can lead to claim repudiation during settlement."
-        ),
-        "followups": [
-            "What happens if I start smoking after buying a policy?",
-            "Can I get life insurance without a medical test?",
-            "What causes insurance claim rejections?"
+            "Can I change the inflation rate in the simulator?",
+            "Why is education inflation assumed higher than general inflation?",
+            "What is the effect of higher discount rate on cover needed?"
         ]
     }
 ]
 
 FALLBACK_REPLY = (
-    "Thank you for your question. As an educational advisory AI, I can provide clear guidance on "
-    "life insurance categories (Term, Whole Life, Endowment, ULIPs), financial calculation methodology, "
-    "inflation adjustments, and policy riders.\n\n"
-    "To discuss your specific underwriting history or customized multi-generation estate plan, "
-    "you can book a complimentary consultation with one of our licensed Certified Financial Planners."
+    "Welcome to LifeWise digital advisory. I can answer questions regarding life insurance categories "
+    "(Term, Whole Life, Endowment, ULIPs), Saffron Life product features, calculation formulas, "
+    "riders, and synthetic premium rates.\n\n"
+    "For personalized guidance, you can also book a consultation with one of our certified advisors "
+    "using the 'Book Advisor' feature."
 )
 
 DEFAULT_FOLLOWUPS = [
-    "What is the difference between Term and ULIP?",
-    "How does inflation impact my life insurance need?",
-    "What formula does LifeSure use to calculate coverage?",
-    "Which riders should I consider for complete protection?"
+    "What is the difference between Saffron Kesaro Term and ULIP?",
+    "How does LifeWise calculate my family's coverage need?",
+    "What riders are available on Saffron Life products?",
+    "How does Saffron Kesaro Loan Cover protect my home mortgage?"
 ]
 
 
 class AdvisoryService:
     """
-    Educational Advisory Service providing verified insurance intelligence and advisor booking.
+    Educational Advisory Service providing verified insurance intelligence,
+    synthetic advisor directory search, and consultation booking.
     """
+    _booked_slot_ids: set = set()
 
     @classmethod
     def answer_chat_query(cls, user_message: str) -> ChatMessageResponse:
         cleaned = user_message.lower().strip()
-
-        # Keyword matching against approved knowledge base
         best_match = None
         max_matches = 0
 
@@ -217,28 +178,99 @@ class AdvisoryService:
         )
 
     @classmethod
-    def get_advisors(cls) -> List[AdvisorItem]:
-        return DEMO_ADVISORS
+    def get_advisors(
+        cls,
+        language: Optional[str] = None,
+        specialisation: Optional[str] = None,
+        consultation_mode: Optional[str] = None,
+        search_query: Optional[str] = None,
+    ) -> List[AdvisorItem]:
+        """
+        Returns all 15 synthetic advisors from advisors.csv with optional filtering.
+        """
+        items: List[AdvisorItem] = []
+        for adv in data_loader.advisors_list:
+            # Language filter
+            if language and language.lower() not in [l.lower() for l in adv.get("languages_list", [])]:
+                continue
+            # Specialisation filter
+            if specialisation and specialisation.lower() not in [s.lower() for s in adv.get("specialisations_list", [])]:
+                continue
+            # Mode filter
+            if consultation_mode and consultation_mode.lower() not in [m.lower() for m in adv.get("consultation_modes_list", [])]:
+                continue
+            # Search query filter
+            if search_query:
+                q = search_query.lower()
+                name = adv.get("advisor_name", "").lower()
+                specs = " ".join(adv.get("specialisations_list", [])).lower()
+                langs = " ".join(adv.get("languages_list", [])).lower()
+                if q not in name and q not in specs and q not in langs:
+                    continue
+
+            items.append(
+                AdvisorItem(
+                    id=adv["advisor_id"],
+                    name=adv["advisor_name"],
+                    title=adv["title"],
+                    credentials=f"CFP®, ChFC®, {adv['experience_years']} yrs exp",
+                    experience_years=adv["experience_years"],
+                    specialties=adv["specialisations_list"],
+                    avatar_url=adv.get("avatar_url"),
+                    bio=adv.get("bio", ""),
+                    rating=adv["rating"],
+                    reviews_count=adv["reviews_count"],
+                )
+            )
+        return items
 
     @classmethod
     def get_available_slots(cls, advisor_id: str) -> List[AvailableSlot]:
-        # Generates realistic demo slots for today & next 2 business days
-        slots = []
-        days = ["Tomorrow", "In 2 Days", "In 3 Days"]
-        times = ["09:30 AM - 10:15 AM", "11:00 AM - 11:45 AM", "02:30 PM - 03:15 PM", "04:00 PM - 04:45 PM", "05:30 PM - 06:15 PM"]
+        """
+        Retrieves slots for an advisor from advisor_slots.csv.
+        Compares slot timestamp against CURRENT_SIMULATION_TIME (2026-10-29T20:41:58).
+        Only slots starting in the future that are marked available and not booked locally are returned.
+        """
+        raw_slots = data_loader.slots_by_advisor.get(advisor_id, [])
+        results: List[AvailableSlot] = []
 
-        for d_idx, day_str in enumerate(days):
-            for t_idx, time_str in enumerate(times):
-                slot_id = f"{advisor_id}-d{d_idx}-t{t_idx}"
-                # Mark a couple slots booked for realism
-                is_avail = not (d_idx == 0 and t_idx == 1)
-                slots.append(
-                    AvailableSlot(
-                        slot_id=slot_id,
-                        advisor_id=advisor_id,
-                        date_str=day_str,
-                        time_str=time_str,
-                        is_available=is_avail
-                    )
+        for s in raw_slots:
+            slot_id = s["slot_id"]
+            start_str = s["slot_start"]
+            end_str = s["slot_end"]
+
+            # Parse slot datetime
+            try:
+                start_dt = datetime.fromisoformat(start_str)
+                end_dt = datetime.fromisoformat(end_str)
+            except Exception:
+                continue
+
+            # Compare with current date: slots strictly before October 29, 2026 20:41 are past
+            is_past = start_dt < CURRENT_SIMULATION_TIME
+            is_already_booked = (s.get("status") == "booked") or (slot_id in cls._booked_slot_ids)
+            is_available = (not is_past) and (not is_already_booked)
+
+            # Format human-readable date & time
+            date_str = start_dt.strftime("%A, %b %d, %Y")
+            time_str = f"{start_dt.strftime('%I:%M %p')} - {end_dt.strftime('%I:%M %p')} IST"
+
+            results.append(
+                AvailableSlot(
+                    slot_id=slot_id,
+                    advisor_id=advisor_id,
+                    date_str=date_str,
+                    time_str=time_str,
+                    is_available=is_available,
                 )
-        return slots
+            )
+
+        return results
+
+    @classmethod
+    def mark_slot_booked(cls, slot_id: str) -> bool:
+        """Reserve slot in memory to prevent duplicate bookings."""
+        if slot_id in cls._booked_slot_ids:
+            return False
+        cls._booked_slot_ids.add(slot_id)
+        return True

@@ -16,7 +16,9 @@ class SimulationEngine:
             horizon_years=settings.DEFAULT_INCOME_REPLACEMENT_YEARS,
             inflation_rate=settings.DEFAULT_INFLATION_RATE,
             discount_rate=settings.DEFAULT_DISCOUNT_RATE,
-            family_expense_factor=settings.FAMILY_EXPENSE_FACTOR
+            family_expense_factor=settings.FAMILY_EXPENSE_FACTOR,
+            annual_income=req.base_annual_income,
+            dependents_count=req.base_dependents_count,
         )
         base_gross = (
             base_pv
@@ -32,7 +34,9 @@ class SimulationEngine:
             horizon_years=req.simulated_replacement_years,
             inflation_rate=req.simulated_inflation_rate,
             discount_rate=req.simulated_discount_rate,
-            family_expense_factor=settings.FAMILY_EXPENSE_FACTOR
+            family_expense_factor=settings.FAMILY_EXPENSE_FACTOR,
+            annual_income=req.base_annual_income,
+            dependents_count=req.base_dependents_count,
         )
         
         sim_goals = req.base_future_goals * req.simulated_goals_scaling

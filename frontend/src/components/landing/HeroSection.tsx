@@ -59,15 +59,39 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
             </div>
 
             {/* Headline */}
-            <h1 className="font-serif text-4xl sm:text-5xl xl:text-[56px] font-semibold text-[#0B132B] leading-[1.12] tracking-tight">
-              Your Family’s Future <br className="hidden sm:inline" />
-              Deserves a <span className="text-[#1D4ED8] italic font-normal">Clearer Plan.</span>
+            <h1 className="font-serif text-4xl sm:text-5xl xl:text-[54px] font-semibold text-[#0B132B] leading-[1.14] tracking-tight">
+              Your family's future deserves a <span className="text-[#1D4ED8] italic font-normal">clearer plan.</span>
             </h1>
 
-            {/* Value Proposition */}
+            {/* Supporting Text */}
             <p className="text-base sm:text-lg text-slate-600 leading-relaxed font-normal max-w-xl">
-              Traditional rules of thumb like "10x annual income" leave families dangerously underinsured. LifeSure AI calculates your true protection gap in 3 minutes using transparent, inflation-adjusted analysis — with zero commission bias.
+              Understand your family's financial protection needs, explore suitable insurance options, and make informed decisions with personalized guidance.
             </p>
+
+            {/* 5 Core Questions At A Glance Card */}
+            <div className="p-4 rounded-2xl bg-white/90 border border-[#E6E4DF] shadow-xs space-y-2 text-xs">
+              <div className="flex items-center space-x-1.5 text-[#1D4ED8] font-bold text-[11px] uppercase tracking-wider font-mono">
+                <Info className="w-3.5 h-3.5" />
+                <span>LifeWise Platform Overview</span>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-slate-600 text-[11px] leading-snug">
+                <div>
+                  <strong className="text-[#0B132B]">What is LifeWise?</strong> An independent digital life insurance needs finder and advisory platform.
+                </div>
+                <div>
+                  <strong className="text-[#0B132B]">Why it matters:</strong> Generic rules leave families underinsured; we calculate inflation-adjusted protection.
+                </div>
+                <div>
+                  <strong className="text-[#0B132B]">How it works:</strong> Capital Needs Analysis factors living expenses, loans, and goals minus your savings.
+                </div>
+                <div>
+                  <strong className="text-[#0B132B]">What you receive:</strong> A personalized protection gap report, eligible product matches, and real premium quotes.
+                </div>
+              </div>
+              <div className="pt-1 border-t border-slate-100 text-[11px] text-slate-500">
+                <strong className="text-[#0B132B]">Next step:</strong> Start your 3-minute assessment or explore pre-configured synthetic profiles.
+              </div>
+            </div>
 
             {/* CTAs */}
             <div className="pt-2 flex flex-col sm:flex-row sm:items-center space-y-3 sm:space-y-0 sm:space-x-4">
@@ -94,46 +118,46 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
             <div className="pt-2 flex flex-wrap items-center gap-2 text-slate-600">
               <div className="inline-flex items-center space-x-1.5 px-3 py-1 rounded-full bg-slate-100/90 text-[11px] font-medium border border-slate-200/80">
                 <CheckCircle2 className="w-3.5 h-3.5 text-[#1D4ED8]" />
-                <span>Personalised Analysis</span>
+                <span>Personalised Needs Model</span>
               </div>
               <div className="inline-flex items-center space-x-1.5 px-3 py-1 rounded-full bg-slate-100/90 text-[11px] font-medium border border-slate-200/80">
                 <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
-                <span>Transparent Methodology</span>
+                <span>14 Saffron Products</span>
               </div>
               <div className="inline-flex items-center space-x-1.5 px-3 py-1 rounded-full bg-slate-100/90 text-[11px] font-medium border border-slate-200/80">
                 <Lock className="w-3.5 h-3.5 text-amber-600" />
-                <span>No Hidden Charges</span>
+                <span>IRDAI Rate Formula</span>
               </div>
               <div className="inline-flex items-center space-x-1.5 px-3 py-1 rounded-full bg-slate-100/90 text-[11px] font-medium border border-slate-200/80">
                 <Award className="w-3.5 h-3.5 text-indigo-600" />
-                <span>Expert Guidance</span>
+                <span>15 Certified Advisors</span>
               </div>
             </div>
 
-            {/* 4 Bottom Metric Stats */}
+            {/* 4 Bottom Factual Platform Metrics */}
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-4 border-t border-[#E6E4DF]">
               <div className="p-3 rounded-2xl bg-white border border-[#E6E4DF] shadow-xs">
                 <div className="flex items-center space-x-1.5 text-[#1D4ED8] mb-0.5">
                   <ShieldCheck className="w-4 h-4" />
-                  <span className="font-bold text-sm text-[#0B132B]">1M+</span>
+                  <span className="font-bold text-sm text-[#0B132B]">CNA</span>
                 </div>
-                <div className="text-[11px] text-slate-500 font-medium">Families Secured</div>
+                <div className="text-[11px] text-slate-500 font-medium">Needs Analysis Model</div>
               </div>
 
               <div className="p-3 rounded-2xl bg-white border border-[#E6E4DF] shadow-xs">
                 <div className="flex items-center space-x-1.5 text-emerald-600 mb-0.5">
                   <Users className="w-4 h-4" />
-                  <span className="font-bold text-sm text-[#0B132B]">95%</span>
+                  <span className="font-bold text-sm text-[#0B132B]">39,588</span>
                 </div>
-                <div className="text-[11px] text-slate-500 font-medium">User Satisfaction</div>
+                <div className="text-[11px] text-slate-500 font-medium">Synthetic Rate Points</div>
               </div>
 
               <div className="p-3 rounded-2xl bg-white border border-[#E6E4DF] shadow-xs">
                 <div className="flex items-center space-x-1.5 text-amber-600 mb-0.5">
                   <Award className="w-4 h-4" />
-                  <span className="font-bold text-sm text-[#0B132B]">Trusted</span>
+                  <span className="font-bold text-sm text-[#0B132B]">Zero Bias</span>
                 </div>
-                <div className="text-[11px] text-slate-500 font-medium">Financial Advisory</div>
+                <div className="text-[11px] text-slate-500 font-medium">Pure Fiduciary Engine</div>
               </div>
 
               <div className="p-3 rounded-2xl bg-white border border-[#E6E4DF] shadow-xs">
@@ -141,7 +165,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
                   <Lock className="w-4 h-4" />
                   <span className="font-bold text-sm text-[#0B132B]">100%</span>
                 </div>
-                <div className="text-[11px] text-slate-500 font-medium">Data Privacy</div>
+                <div className="text-[11px] text-slate-500 font-medium">Client-Side Privacy</div>
               </div>
             </div>
 
@@ -458,7 +482,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
               <div className="flex items-center space-x-2">
                 <Play className="w-4 h-4 text-[#1D4ED8]" />
                 <h3 className="text-base font-semibold text-white">
-                  How LifeSure AI Protects Your Family
+                  How LifeWise Protects Your Family
                 </h3>
               </div>
               <button
@@ -483,7 +507,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
                   Transparent Needs Analysis in Action
                 </h4>
                 <p className="text-xs text-slate-300 leading-relaxed">
-                  Learn how LifeSure AI uses CFP-accredited capital needs analysis to compute true income replacement, account for loans and child education, and avoid high-commission mis-selling.
+                  Learn how LifeWise uses actuarially rigorous capital needs analysis to compute true income replacement, account for loans and child education, and avoid high-commission mis-selling.
                 </p>
                 <button
                   onClick={() => {
@@ -498,7 +522,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
             </div>
 
             <div className="text-[11px] text-slate-400 text-center">
-              LifeSure AI does not distribute spam or issue actual policies. We provide pure fiduciary financial analytics.
+              LifeWise does not distribute spam or issue actual policies. We provide pure fiduciary financial analytics.
             </div>
           </div>
         </div>

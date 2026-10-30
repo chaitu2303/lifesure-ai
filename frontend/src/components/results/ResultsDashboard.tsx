@@ -343,7 +343,7 @@ export const ResultsDashboard: React.FC<DashboardProps> = ({
                 Actuarial Valuation Formula
               </h4>
               <p className="text-xs text-slate-600 leading-relaxed">
-                LifeSure AI implements the standard Capital Needs Analysis (CNA) equation recognized by the Financial Planning Standards Board (FPSB):
+                LifeWise implements the standard Capital Needs Analysis (CNA) equation recognized by the Financial Planning Standards Board (FPSB):
               </p>
               <div className="p-3.5 rounded-xl bg-slate-900 text-slate-200 font-mono text-[11px] leading-relaxed overflow-x-auto">
                 Net Cover Gap = max(0, Income PV + Debt Extinguishment + Goals PV + Reserve - Liquid Assets - Existing Cover)

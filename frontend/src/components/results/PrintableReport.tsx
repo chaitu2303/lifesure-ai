@@ -51,7 +51,7 @@ export const PrintableReport: React.FC<ReportProps> = ({ result, input, onBack }
         <div className="border-b-2 border-[#0B132B] pb-6 mb-8 flex items-start justify-between">
           <div>
             <div className="flex items-center space-x-2 mb-1">
-              <span className="font-serif text-2xl font-bold tracking-tight text-[#0B132B]">LIFESURE AI</span>
+              <span className="font-serif text-2xl font-bold tracking-tight text-[#0B132B]">LIFEWISE</span>
               <span className="text-[10px] font-mono uppercase tracking-widest text-[#1D4ED8] bg-[#1D4ED8]/10 px-2 py-0.5 rounded-sm">
                 Fiduciary Advisory
               </span>
@@ -215,7 +215,7 @@ export const PrintableReport: React.FC<ReportProps> = ({ result, input, onBack }
         {/* Fiduciary Regulatory Sign-Off */}
         <div className="border-t border-[#E6E4DF] pt-6 flex flex-col sm:flex-row justify-between items-start sm:items-center text-[10px] font-mono text-[#64748B] gap-4">
           <div>
-            LifeSure AI Analytical Advisory Platform · Irving Fisher Actuarial Model · Standard Form 1042-CNA
+            LifeWise Analytical Advisory Platform · Irving Fisher Actuarial Model · Standard Form 1042-CNA
           </div>
           <div className="flex items-center space-x-1.5 text-[#047857]">
             <CheckCircle2 className="w-3.5 h-3.5" />

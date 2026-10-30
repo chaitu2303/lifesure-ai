@@ -78,10 +78,7 @@ export const AppShell: React.FC<AppShellProps> = ({
           <div>
             <div className="flex items-baseline space-x-1">
               <span className="font-serif text-xl font-bold tracking-tight text-white">
-                LifeSure
-              </span>
-              <span className="text-base font-bold text-[#3B82F6]">
-                AI
+                LifeWise
               </span>
             </div>
             <span className="text-[9px] font-mono tracking-wider uppercase text-slate-400">
@@ -159,8 +156,7 @@ export const AppShell: React.FC<AppShellProps> = ({
             <div className="space-y-4">
               <div className="flex items-center justify-between border-b border-slate-800 pb-3">
                 <div className="flex items-center space-x-2">
-                  <span className="font-serif text-lg font-bold text-white">LifeSure</span>
-                  <span className="text-sm font-bold text-[#3B82F6]">AI</span>
+                  <span className="font-serif text-lg font-bold text-white">LifeWise</span>
                 </div>
                 <button
                   onClick={() => setMobileSidebarOpen(false)}
@@ -229,7 +225,7 @@ export const AppShell: React.FC<AppShellProps> = ({
 
             {/* Breadcrumb / Step Title */}
             <div className="flex items-center space-x-2 text-xs">
-              <span className="text-slate-400 font-medium hidden sm:inline">LifeSure AI</span>
+              <span className="text-slate-400 font-medium hidden sm:inline">LifeWise</span>
               <span className="text-slate-300 hidden sm:inline">/</span>
               <span className="font-semibold text-[#0B132B]">
                 {stepTitle || currentView.toUpperCase()}

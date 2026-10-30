@@ -43,7 +43,7 @@ export const TrustSection: React.FC = () => {
           </h2>
           <p className="mt-3 text-sm text-[#475569] leading-relaxed">
             The traditional insurance market is structured around sales volume and broker commissions. 
-            LifeSure AI operates as a pure analytical advisory platform to safeguard your family’s interests.
+            LifeWise operates as a pure analytical advisory platform to safeguard your family’s interests.
           </p>
         </div>
 

@@ -1,5 +1,5 @@
 /**
- * LifeSure AI Currency & Numeric Formatting Utilities
+ * LifeWise Currency & Numeric Formatting Utilities
  * Formatted specifically for Indian Financial Standards (INR, Lakhs, Crores)
  */
 

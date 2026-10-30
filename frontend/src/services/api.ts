@@ -9,6 +9,11 @@ import {
   Appointment,
   AdminMetrics,
   FinancialAssumptions,
+  ProductCatalogueItem,
+  RiderItem,
+  PremiumQuoteRequest,
+  PremiumQuoteResult,
+  CustomerProfileSummary,
 } from '../types';
 import { offlineEngine } from './offlineEngine';
 
@@ -142,6 +147,50 @@ export const api = {
       `${API_BASE_URL}/products`,
       undefined,
       () => offlineEngine.getRecommendations({} as any).all_recommendations
+    );
+  },
+
+  getCatalogueProducts: async (): Promise<ProductCatalogueItem[]> => {
+    return fetchWithFallback(
+      `${API_BASE_URL}/products`,
+      undefined,
+      () => offlineEngine.getCatalogueProducts()
+    );
+  },
+
+  getRealQuote: async (quoteRequest: PremiumQuoteRequest): Promise<PremiumQuoteResult> => {
+    return fetchWithFallback(
+      `${API_BASE_URL}/products/quote`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(quoteRequest),
+      },
+      () => offlineEngine.getRealQuote(quoteRequest)
+    );
+  },
+
+  getRiders: async (): Promise<RiderItem[]> => {
+    return fetchWithFallback(
+      `${API_BASE_URL}/riders`,
+      undefined,
+      () => offlineEngine.getRiders()
+    );
+  },
+
+  getDemoProfiles: async (): Promise<CustomerProfileSummary[]> => {
+    return fetchWithFallback(
+      `${API_BASE_URL}/profiles`,
+      undefined,
+      () => offlineEngine.getDemoProfiles()
+    );
+  },
+
+  getDatasetsStatus: async (): Promise<any> => {
+    return fetchWithFallback(
+      `${API_BASE_URL}/datasets/status`,
+      undefined,
+      () => ({ status: 'ready', message: 'Client demo cache' })
     );
   },
 
@@ -296,5 +345,55 @@ export const api = {
       { method: 'PATCH', headers: { 'X-Admin-Key': adminKey } },
       () => ({ status: 'success', productId })
     );
+  },
+
+  // LLM & Policy Intelligence
+  getPolicyRiskAnalysis: async (productId: string, params: Record<string, any>): Promise<any> => {
+    const qs = new URLSearchParams(params).toString();
+    const res = await fetch(`${API_BASE_URL}/products/${productId}/risk-analysis?${qs}`);
+    if (!res.ok) {
+      throw new Error(`Failed to fetch policy risk analysis: ${res.statusText}`);
+    }
+    return res.json();
+  },
+
+  // Reverse Budget Solver
+  solveReverseBudget: async (params: { monthly_budget: number; age?: number; tenure?: number; gender?: string; smoker_status?: string; category?: string }): Promise<any> => {
+    const cleanParams: Record<string, string> = {
+      monthly_budget: String(params.monthly_budget),
+      age: String(params.age || 30),
+      tenure: String(params.tenure || 25),
+      gender: params.gender || 'male',
+      smoker_status: params.smoker_status || 'non_smoker',
+    };
+    if (params.category) cleanParams.category = params.category;
+    const qs = new URLSearchParams(cleanParams).toString();
+    const res = await fetch(`${API_BASE_URL}/reverse-budget-solve?${qs}`);
+    if (!res.ok) {
+      throw new Error(`Failed to solve reverse budget: ${res.statusText}`);
+    }
+    return res.json();
+  },
+
+  // Authoritative Insurance Glossary
+  getGlossary: async (params?: { section?: string; search?: string; irdai_only?: boolean }): Promise<any> => {
+    const q = new URLSearchParams();
+    if (params?.section) q.append('section', params.section);
+    if (params?.search) q.append('search', params.search);
+    if (params?.irdai_only) q.append('irdai_only', 'true');
+    const qs = q.toString() ? `?${q.toString()}` : '';
+    const res = await fetch(`${API_BASE_URL}/glossary${qs}`);
+    if (!res.ok) {
+      throw new Error(`Failed to fetch glossary: ${res.statusText}`);
+    }
+    return res.json();
+  },
+
+  getGlossarySections: async (): Promise<{ sections: string[] }> => {
+    const res = await fetch(`${API_BASE_URL}/glossary/sections`);
+    if (!res.ok) {
+      throw new Error(`Failed to fetch glossary sections: ${res.statusText}`);
+    }
+    return res.json();
   },
 };

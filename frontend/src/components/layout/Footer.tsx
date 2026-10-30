@@ -17,18 +17,18 @@ export const Footer: React.FC<FooterProps> = ({ onNavigate }) => {
           <div className="md:col-span-5 space-y-4">
             <div className="flex items-baseline space-x-2">
               <span className="font-serif text-2xl font-semibold tracking-tight text-midnight-950">
-                LifeSure
+                LifeWise
               </span>
               <span className="font-mono text-[10px] tracking-wider uppercase text-cobalt-700 bg-cobalt-50 px-1.5 py-0.5 rounded border border-cobalt-100">
-                Fiduciary Engine
+                Fiduciary Advisory
               </span>
             </div>
             <p className="text-midnight-600 text-[13px] leading-relaxed max-w-sm">
-              An independent wealth and life protection advisory platform. We replace sales-driven commission incentives with verifiable actuarial mathematics and Capital Needs Analysis.
+              Protect Today. Plan Tomorrow. Live Assured. An independent digital life insurance needs finder and digital advisory platform built for retail banking customers.
             </p>
             <div className="pt-1">
               <span className="text-[11px] font-mono uppercase tracking-wider text-midnight-500">
-                CFP® Board Capital Needs Standard Compliant
+                Capital Needs Analysis &bull; Deterministic Saffron Engine
               </span>
             </div>
           </div>
@@ -95,7 +95,7 @@ export const Footer: React.FC<FooterProps> = ({ onNavigate }) => {
         {/* Legal & Regulatory Bottom Row */}
         <div className="pt-8 flex flex-col md:flex-row items-start md:items-center justify-between text-midnight-500 text-[11px] gap-4">
           <p className="max-w-2xl leading-relaxed">
-            © {new Date().getFullYear()} LifeSure Advisory Systems. All estimations are generated for analytical and educational comparison based on generalized actuarial risk models. They do not constitute an official underwriting commitment or binding insurer quotation.
+            &copy; {new Date().getFullYear()} LifeWise &bull; Protect Today. Plan Tomorrow. Live Assured. All estimations are generated for analytical and educational comparison using synthetic demonstration datasets for TalentAP Mega Hackathon 2026 (Problem B2). They do not constitute an official underwriting commitment or binding insurer quotation.
           </p>
           <div className="flex items-center space-x-5 text-midnight-600 font-medium shrink-0">
             <span>Methodology Manifesto</span>

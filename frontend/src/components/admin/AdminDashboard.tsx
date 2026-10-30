@@ -16,7 +16,7 @@ import { AdminMetrics, FinancialAssumptions, Appointment } from '../../types';
 import { api } from '../../services/api';
 
 export const AdminDashboard: React.FC = () => {
-  const [adminKey, setAdminKey] = useState<string>('lifesure-admin-key-2026');
+  const [adminKey, setAdminKey] = useState<string>('lifewise-admin-key-2026');
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
   const [authError, setAuthError] = useState<string | null>(null);
 
@@ -158,7 +158,7 @@ export const AdminDashboard: React.FC = () => {
             <button
               type="button"
               onClick={() => {
-                setAdminKey('lifesure-admin-key-2026');
+                setAdminKey('lifewise-admin-key-2026');
                 setTimeout(() => handleLogin(), 50);
               }}
               className="text-[11px] font-mono text-[#1D4ED8] hover:underline"

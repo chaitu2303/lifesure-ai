@@ -17,7 +17,7 @@ from app.schemas import (
     AdminMetricsResponse,
     AppointmentResponse,
 )
-from app.services.recommendation_engine import DEMO_PRODUCTS
+from app.data_loader import data_loader
 
 router = APIRouter(prefix="/admin", tags=["Admin"])
 
@@ -49,15 +49,13 @@ def get_admin_metrics(
     avg_gap = db.query(func.avg(AssessmentRecord.net_additional_cover)).scalar() or 0.0
     total_gap = db.query(func.sum(AssessmentRecord.net_additional_cover)).scalar() or 0.0
 
-    # Count products
-    active_products = db.query(ProductModel).filter(ProductModel.is_active == True).count()
-    if active_products == 0:
-        active_products = len(DEMO_PRODUCTS)
+    # Count products from catalogue
+    active_products = len(data_loader.products_list)
 
     # Categories breakdown
     categories: Dict[str, int] = {"term": 0, "ulip": 0, "endowment": 0, "whole_life": 0}
-    for p in DEMO_PRODUCTS:
-        cat = p["category"]
+    for p in data_loader.products_list:
+        cat = p.get("category", "term")
         categories[cat] = categories.get(cat, 0) + 1
 
     return AdminMetricsResponse(

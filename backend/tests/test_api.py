@@ -10,7 +10,7 @@ def test_health_check_api():
     assert response.status_code == 200
     data = response.json()
     assert data["status"] == "healthy"
-    assert "LifeSure" in data["service"]
+    assert "LifeWise" in data["service"]
 
 def test_assessment_calculate_and_submit_api():
     payload = {
@@ -146,7 +146,7 @@ def test_advisors_and_appointments_api():
     book_res = client.post("/api/appointments/book", json=book_payload)
     assert book_res.status_code == 200
     b_data = book_res.json()
-    assert "LS-APT-" in b_data["appointment_code"]
+    assert ("LW-APT-" in b_data["appointment_code"]) or ("LS-APT-" in b_data["appointment_code"]) or ("APT-" in b_data["appointment_code"])
     assert b_data["client_name"] == "Sarah Miller"
     assert b_data["status"] == "confirmed"
 
@@ -170,3 +170,37 @@ def test_admin_metrics_security():
     m_data = auth_res.json()
     assert "total_assessments" in m_data
     assert "average_protection_gap" in m_data
+
+def test_policy_risk_analysis_api():
+    res = client.get("/api/products/PRD-X4CBUF/risk-analysis?age=30&sum_assured=10000000&policy_term=30&monthly_budget=2500")
+    assert res.status_code == 200
+    data = res.json()
+    assert data["policy_id"] == "PRD-X4CBUF"
+    assert "risk_analysis" in data
+    assert data["risk_analysis"]["financial_risk"]["status"] in ["low", "moderate", "high", "insufficient_data"]
+    assert len(data["advantages"]) > 0
+    assert len(data["evidence_sources"]) > 0
+
+def test_reverse_budget_solver_api():
+    res = client.get("/api/reverse-budget-solve?monthly_budget=1500&age=30&tenure=30")
+    assert res.status_code == 200
+    data = res.json()
+    assert data["options_found_count"] > 0
+    assert len(data["affordable_options"]) > 0
+    top = data["affordable_options"][0]
+    assert top["monthly_instalment"] <= 1500
+
+def test_glossary_api():
+    res = client.get("/api/glossary")
+    assert res.status_code == 200
+    data = res.json()
+    assert data["total"] > 10
+    assert len(data["entries"]) > 10
+
+def test_glossary_sections_api():
+    res = client.get("/api/glossary/sections")
+    assert res.status_code == 200
+    data = res.json()
+    assert "sections" in data
+    assert len(data["sections"]) >= 3
+

@@ -12,7 +12,7 @@ const INITIAL_MESSAGES: ChatMessage[] = [
   {
     id: 'm-1',
     sender: 'assistant',
-    text: "Welcome to LifeSure Advisory Assistant. I can provide objective, commission-free guidance on policy categories (Term, Whole Life, Endowment, ULIPs), inflation discounting mechanics, or our Capital Needs methodology. What can I clarify for you?",
+    text: "Welcome to LifeWise Advisory Assistant. I can provide objective, commission-free guidance on policy categories (Term, Whole Life, Endowment, ULIPs), inflation discounting mechanics, or our Capital Needs methodology. What can I clarify for you?",
     suggested_followups: [
       "Why is Term Life recommended over Endowment?",
       "How does inflation erode future insurance payouts?",
@@ -79,7 +79,7 @@ export const AdvisoryChatbot: React.FC<ChatbotProps> = ({ isOpen, onClose }) => 
           </div>
           <div>
             <div className="flex items-center space-x-1.5">
-              <h3 className="font-serif text-sm font-medium text-[#0B132B]">LifeSure Advisory AI</h3>
+              <h3 className="font-serif text-sm font-medium text-[#0B132B]">LifeWise Advisory AI</h3>
               <span className="w-2 h-2 rounded-full bg-[#047857]"></span>
             </div>
             <p className="text-[10px] font-mono text-[#64748B]">Deterministic Actuarial Education</p>
