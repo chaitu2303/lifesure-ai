@@ -3,7 +3,14 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.config import settings
 from app.database import engine, Base, SessionLocal
-from app.models import Product as ProductModel, Advisor as AdvisorModel, FinancialAssumptionRecord
+from app.models import (
+    Product as ProductModel,
+    Advisor as AdvisorModel,
+    FinancialAssumptionRecord,
+    UserAccount,
+    CustomerProfileRecord,
+)
+from app.services.auth_service import hash_password
 from app.data_loader import data_loader
 from app.routers import (
     assessment,
@@ -13,6 +20,7 @@ from app.routers import (
     appointments,
     admin,
     customers,
+    auth,
 )
 
 app = FastAPI(
@@ -99,6 +107,50 @@ def init_db_and_seed():
                 db.add(adv)
         db.commit()
 
+        # Seed initial administrator account (ADMIN001) if not existing
+        admin_id = getattr(settings, "ADMIN_INITIAL_ID", "ADMIN001")
+        initial_pw = getattr(settings, "ADMIN_INITIAL_PASSWORD", "Admin@123")
+        existing_admin = db.query(UserAccount).filter_by(user_id=admin_id).first()
+        if not existing_admin:
+            pw_hash, salt = hash_password(initial_pw)
+            admin_account = UserAccount(
+                user_id=admin_id,
+                role="admin",
+                password_hash=pw_hash,
+                salt=salt,
+                full_name="Platform Chief Actuary & Governance Admin",
+                email="admin@lifewise.internal",
+                must_change_password=True,
+                is_active=True,
+            )
+            db.add(admin_account)
+            db.commit()
+
+        # Import customer profiles into DB table customer_profiles (idempotent, 200 profiles)
+        for cp in data_loader.customer_profiles:
+            prof_id = cp.get("profile_id")
+            existing_prof = db.query(CustomerProfileRecord).filter_by(profile_id=prof_id).first()
+            if not existing_prof:
+                rec = CustomerProfileRecord(
+                    profile_id=prof_id,
+                    full_name=cp.get("full_name", prof_id),
+                    age=int(cp.get("age", 30)),
+                    gender=cp.get("gender", "male"),
+                    city=cp.get("city", "Bengaluru"),
+                    city_tier=int(cp.get("city_tier", 1)),
+                    employment_type=cp.get("employment_type", "salaried"),
+                    occupation=cp.get("occupation", "Professional"),
+                    annual_income_inr=float(cp.get("annual_income_inr", 0.0)),
+                    monthly_household_expenses_inr=float(cp.get("monthly_household_expenses_inr", 0.0)),
+                    marital_status=cp.get("marital_status", "married"),
+                    record_source="dataset_b2_synthetic",
+                    import_status="imported",
+                    has_assessment=True,
+                    raw_profile_json=json.dumps(cp),
+                )
+                db.add(rec)
+        db.commit()
+
     finally:
         db.close()
 
@@ -149,3 +201,4 @@ app.include_router(advisory.router, prefix=settings.API_PREFIX)
 app.include_router(appointments.router, prefix=settings.API_PREFIX)
 app.include_router(admin.router, prefix=settings.API_PREFIX)
 app.include_router(customers.router, prefix=settings.API_PREFIX)
+app.include_router(auth.router, prefix=settings.API_PREFIX)

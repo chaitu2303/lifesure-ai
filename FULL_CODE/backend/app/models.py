@@ -96,3 +96,45 @@ class FinancialAssumptionRecord(Base):
     emergency_reserve_months = Column(Integer, default=6)
     family_expense_factor = Column(Float, default=0.75)
     updated_at = Column(DateTime, default=datetime.datetime.utcnow)
+
+
+class UserAccount(Base):
+    __tablename__ = "user_accounts"
+
+    id = Column(Integer, primary_key=True, index=True, autoincrement=True)
+    user_id = Column(String(64), unique=True, index=True, nullable=False)  # e.g. ADMIN001 or CUS-06ISGGSQ
+    role = Column(String(32), nullable=False)  # "admin" or "customer"
+    password_hash = Column(String(256), nullable=False)
+    salt = Column(String(64), nullable=False)
+    full_name = Column(String(128), nullable=False)
+    email = Column(String(128), nullable=True)
+    must_change_password = Column(Boolean, default=False)
+    is_active = Column(Boolean, default=True)
+    linked_profile_id = Column(String(64), nullable=True)  # Links to customer profile in dataset if any
+    created_at = Column(DateTime, default=datetime.datetime.utcnow)
+    last_login_at = Column(DateTime, nullable=True)
+
+
+class CustomerProfileRecord(Base):
+    """
+    Imported dataset customer profiles stored in database.
+    Separated from user_accounts until explicitly registered/linked.
+    """
+    __tablename__ = "customer_profiles"
+
+    profile_id = Column(String(64), primary_key=True, index=True)
+    full_name = Column(String(128), nullable=False)
+    age = Column(Integer, nullable=False)
+    gender = Column(String(16), nullable=False)
+    city = Column(String(64), nullable=False)
+    city_tier = Column(Integer, default=1)
+    employment_type = Column(String(64), default="salaried")
+    occupation = Column(String(128), default="Professional")
+    annual_income_inr = Column(Float, default=0.0)
+    monthly_household_expenses_inr = Column(Float, default=0.0)
+    marital_status = Column(String(32), default="married")
+    record_source = Column(String(64), default="dataset_b2_synthetic")  # "dataset_b2_synthetic", "registered_user"
+    import_status = Column(String(32), default="imported")             # "imported", "verified", "linked"
+    has_assessment = Column(Boolean, default=True)
+    raw_profile_json = Column(Text, nullable=False)
+    created_at = Column(DateTime, default=datetime.datetime.utcnow)

@@ -16,6 +16,7 @@ import {
 import { AdminMetrics, FinancialAssumptions, Appointment } from '../../types';
 import { api } from '../../services/api';
 import { AdminCustomerExplorer } from './AdminCustomerExplorer';
+import { AdminRegisteredUsers } from './AdminRegisteredUsers';
 
 export const AdminDashboard: React.FC = () => {
   const [adminKey, setAdminKey] = useState<string>('lifewise-admin-key-2026');
@@ -427,6 +428,9 @@ export const AdminDashboard: React.FC = () => {
             </table>
           </div>
         </div>
+
+        {/* Registered Users & Dataset Customer Profiles (Strict Read-Only) */}
+        <AdminRegisteredUsers adminKeyOrToken={adminKey} />
 
         {/* Dataset Customer Members Explorer (Strict Read-Only) */}
         <AdminCustomerExplorer />

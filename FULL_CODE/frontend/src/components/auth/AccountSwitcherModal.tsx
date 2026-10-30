@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { X, User, Shield, Check, LogOut, Search, ArrowRight, Sparkles, Building2, Briefcase } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
+import { api } from '../../services/api';
 
 interface AccountSwitcherModalProps {
   isOpen: boolean;
@@ -15,6 +16,9 @@ export const AccountSwitcherModal: React.FC<AccountSwitcherModalProps> = ({
 }) => {
   const { currentUser, isAdmin, availableProfiles, loginAsCustomer, loginAsAdmin, logout, isLoading } = useAuth();
   const [adminKey, setAdminKey] = useState('');
+  const [adminId, setAdminId] = useState('');
+  const [adminPassword, setAdminPassword] = useState('');
+  const [adminAuthMode, setAdminAuthMode] = useState<'id_password' | 'secret_key'>('id_password');
   const [adminError, setAdminError] = useState('');
   const [activeTab, setActiveTab] = useState<'customer' | 'admin'>('customer');
   const [searchQuery, setSearchQuery] = useState('');
@@ -27,16 +31,37 @@ export const AccountSwitcherModal: React.FC<AccountSwitcherModalProps> = ({
     onClose();
   };
 
-  const handleAdminLogin = (e: React.FormEvent) => {
+  const handleAdminLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setAdminError('');
-    const success = loginAsAdmin(adminKey);
-    if (success) {
-      setAdminKey('');
-      onAdminSelect();
-      onClose();
+
+    if (adminAuthMode === 'id_password') {
+      try {
+        const res = await api.login({
+          user_id: adminId.trim(),
+          password: adminPassword,
+        });
+        if (res.role === 'admin') {
+          loginAsAdmin(res.token);
+          setAdminId('');
+          setAdminPassword('');
+          onAdminSelect();
+          onClose();
+        } else {
+          setAdminError('Access denied: User account is not an authorized administrator.');
+        }
+      } catch (err: any) {
+        setAdminError(err.message || 'Invalid administrator ID or password.');
+      }
     } else {
-      setAdminError('Invalid Admin Secret Key. Try: lifewise-admin-key-2026');
+      const success = loginAsAdmin(adminKey);
+      if (success) {
+        setAdminKey('');
+        onAdminSelect();
+        onClose();
+      } else {
+        setAdminError('Invalid Admin Secret Key. Try: lifewise-admin-key-2026');
+      }
     }
   };
 
@@ -202,25 +227,77 @@ export const AccountSwitcherModal: React.FC<AccountSwitcherModalProps> = ({
                   <span>Platform Governance & Compliance Portal</span>
                 </p>
                 <p className="text-[11px] leading-relaxed">
-                  Administrator access is protected by server-side verification. The default development key is <code className="font-mono text-amber-900 bg-amber-100 px-1 rounded">lifewise-admin-key-2026</code>.
+                  Authenticate with authorized Admin ID (e.g. <code className="font-mono text-amber-900 bg-amber-100 px-1 rounded">ADMIN001</code>) and password, or use master cryptographic key.
                 </p>
               </div>
 
-              <div>
-                <label className="block text-xs font-medium text-slate-700 mb-1">
-                  Administrator Secret Key
-                </label>
-                <input
-                  type="password"
-                  value={adminKey}
-                  onChange={(e) => setAdminKey(e.target.value)}
-                  placeholder="Enter administrator key..."
-                  className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:outline-none focus:border-blue-600 focus:ring-1 focus:ring-blue-600"
-                />
-                {adminError && (
-                  <p className="text-[11px] text-red-600 mt-1">{adminError}</p>
-                )}
+              {/* Auth Mode Toggle */}
+              <div className="flex border border-slate-200 rounded-lg p-0.5 bg-slate-100 text-[11px]">
+                <button
+                  type="button"
+                  onClick={() => setAdminAuthMode('id_password')}
+                  className={`flex-1 py-1 rounded font-medium transition-colors ${
+                    adminAuthMode === 'id_password' ? 'bg-white text-slate-900 shadow-xs' : 'text-slate-600'
+                  }`}
+                >
+                  Admin ID & Password
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setAdminAuthMode('secret_key')}
+                  className={`flex-1 py-1 rounded font-medium transition-colors ${
+                    adminAuthMode === 'secret_key' ? 'bg-white text-slate-900 shadow-xs' : 'text-slate-600'
+                  }`}
+                >
+                  Master Secret Key
+                </button>
               </div>
+
+              {adminAuthMode === 'id_password' ? (
+                <div className="space-y-3">
+                  <div>
+                    <label className="block text-xs font-medium text-slate-700 mb-1">
+                      Administrator ID
+                    </label>
+                    <input
+                      type="text"
+                      value={adminId}
+                      onChange={(e) => setAdminId(e.target.value)}
+                      placeholder="e.g. ADMIN001"
+                      className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:outline-none focus:border-blue-600 font-mono"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-slate-700 mb-1">
+                      Password
+                    </label>
+                    <input
+                      type="password"
+                      value={adminPassword}
+                      onChange={(e) => setAdminPassword(e.target.value)}
+                      placeholder="Enter administrator password..."
+                      className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:outline-none focus:border-blue-600"
+                    />
+                  </div>
+                </div>
+              ) : (
+                <div>
+                  <label className="block text-xs font-medium text-slate-700 mb-1">
+                    Administrator Secret Key
+                  </label>
+                  <input
+                    type="password"
+                    value={adminKey}
+                    onChange={(e) => setAdminKey(e.target.value)}
+                    placeholder="Enter administrator secret key..."
+                    className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:outline-none focus:border-blue-600 focus:ring-1 focus:ring-blue-600"
+                  />
+                </div>
+              )}
+
+              {adminError && (
+                <p className="text-[11px] text-red-600 mt-1">{adminError}</p>
+              )}
 
               <div className="pt-2 flex items-center justify-between">
                 <span className="text-[11px] text-slate-400 font-mono">

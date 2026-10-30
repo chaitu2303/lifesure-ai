@@ -14,6 +14,8 @@ class Settings(BaseSettings):
     
     # Admin security
     ADMIN_SECRET_KEY: str = os.getenv("ADMIN_SECRET_KEY", "lifewise-admin-key-2026")
+    ADMIN_INITIAL_ID: str = os.getenv("ADMIN_INITIAL_ID", "ADMIN001")
+    ADMIN_INITIAL_PASSWORD: str = os.getenv("ADMIN_INITIAL_PASSWORD", "Admin@123")
     
     # CORS
     CORS_ORIGINS: List[str] = [

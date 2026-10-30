@@ -415,4 +415,58 @@ export const api = {
     }
     return res.json();
   },
+
+  // Auth & Admin Registered Users API
+  login: async (credentials: { user_id: string; password: string }): Promise<any> => {
+    const res = await fetch(`${API_BASE_URL}/auth/login`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(credentials),
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({ detail: 'Authentication failed' }));
+      throw new Error(err.detail || 'Authentication failed');
+    }
+    return res.json();
+  },
+
+  changePassword: async (payload: { user_id: string; old_password: string; new_password: string }): Promise<any> => {
+    const res = await fetch(`${API_BASE_URL}/auth/change-password`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({ detail: 'Failed to update password' }));
+      throw new Error(err.detail || 'Failed to update password');
+    }
+    return res.json();
+  },
+
+  getRegisteredUsers: async (adminKeyOrToken: string, search?: string): Promise<any> => {
+    const q = new URLSearchParams();
+    if (search) q.append('search', search);
+    const qs = q.toString() ? `?${q.toString()}` : '';
+    const res = await fetch(`${API_BASE_URL}/admin/registered-users${qs}`, {
+      headers: {
+        'X-Admin-Key': adminKeyOrToken,
+      },
+    });
+    if (!res.ok) {
+      throw new Error('Failed to fetch registered users');
+    }
+    return res.json();
+  },
+
+  getUserDetailReadOnly: async (userId: string, adminKeyOrToken: string): Promise<any> => {
+    const res = await fetch(`${API_BASE_URL}/admin/registered-users/${userId}`, {
+      headers: {
+        'X-Admin-Key': adminKeyOrToken,
+      },
+    });
+    if (!res.ok) {
+      throw new Error(`Failed to fetch user details for ${userId}`);
+    }
+    return res.json();
+  },
 };
