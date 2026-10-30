@@ -11,9 +11,11 @@ import {
   Package,
   Layers,
   TrendingUp,
+  Users,
 } from 'lucide-react';
 import { AdminMetrics, FinancialAssumptions, Appointment } from '../../types';
 import { api } from '../../services/api';
+import { AdminCustomerExplorer } from './AdminCustomerExplorer';
 
 export const AdminDashboard: React.FC = () => {
   const [adminKey, setAdminKey] = useState<string>('lifewise-admin-key-2026');
@@ -425,6 +427,9 @@ export const AdminDashboard: React.FC = () => {
             </table>
           </div>
         </div>
+
+        {/* Dataset Customer Members Explorer (Strict Read-Only) */}
+        <AdminCustomerExplorer />
 
       </div>
     </div>

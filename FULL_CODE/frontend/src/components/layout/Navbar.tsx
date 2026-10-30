@@ -14,6 +14,7 @@ import {
   Sparkles,
   ChevronRight
 } from 'lucide-react';
+import { useAuth } from '../../context/AuthContext';
 
 interface NavbarProps {
   currentView: string;
@@ -28,6 +29,7 @@ export const Navbar: React.FC<NavbarProps> = ({
   onOpenBooking, 
   hasResult = false 
 }) => {
+  const { currentUser, isAdmin } = useAuth();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -167,9 +169,9 @@ export const Navbar: React.FC<NavbarProps> = ({
                 className="hidden sm:flex items-center space-x-1.5 px-3 py-1.5 text-xs font-semibold text-slate-700 hover:text-[#0B132B] hover:bg-slate-100 rounded-full border border-slate-200 transition-colors"
               >
                 <div className="w-5 h-5 rounded-full bg-[#1D4ED8] text-white flex items-center justify-center text-[10px] font-bold">
-                  C
+                  {isAdmin ? 'A' : (currentUser?.full_name?.charAt(0) || 'C')}
                 </div>
-                <span>Dashboard</span>
+                <span>{isAdmin ? 'Admin' : (currentUser?.full_name?.split(' ')[0] || 'Dashboard')}</span>
               </button>
 
               {/* Primary Action Button */}

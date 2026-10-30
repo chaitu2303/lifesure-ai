@@ -21,7 +21,8 @@ import { AdvisoryChatbot } from './components/advisory/AdvisoryChatbot';
 import { ConsultationBookingModal } from './components/advisory/ConsultationBookingModal';
 import { SimulatedVideoRoom } from './components/advisory/SimulatedVideoRoom';
 import { CalculationResult, AssessmentInput } from './types';
-import { MessageSquareText } from 'lucide-react';
+import { MessageSquareText, CheckCircle2 } from 'lucide-react';
+import { useAuth } from './context/AuthContext';
 
 const INITIAL_BENCHMARK_RESULT: CalculationResult = {
   income_replacement_pv: 4500000,
@@ -62,9 +63,18 @@ const INITIAL_BENCHMARK_RESULT: CalculationResult = {
 };
 
 export function App() {
+  const { activeAssessmentInput, activeCalculationResult, notificationMessage } = useAuth();
   const [currentView, setCurrentView] = useState<string>('landing');
   const [calculationResult, setCalculationResult] = useState<CalculationResult>(INITIAL_BENCHMARK_RESULT);
   const [assessmentInput, setAssessmentInput] = useState<AssessmentInput>(DEFAULT_ASSESSMENT_INPUT);
+
+  // Sync active customer calculation data when switched in AuthContext
+  React.useEffect(() => {
+    if (activeCalculationResult && activeAssessmentInput) {
+      setCalculationResult(activeCalculationResult);
+      setAssessmentInput(activeAssessmentInput);
+    }
+  }, [activeCalculationResult, activeAssessmentInput]);
 
   // Modals & Chatbot state
   const [isChatOpen, setIsChatOpen] = useState<boolean>(false);
@@ -290,6 +300,15 @@ export function App() {
         onClose={() => setIsAccountModalOpen(false)}
         onAdminSelect={() => navigateTo('admin')}
       />
+
+      {/* Profile Switch Confirmation Toast */}
+      {notificationMessage && (
+        <div className="fixed bottom-6 left-6 z-50 bg-[#0B132B] text-white border border-blue-500/40 px-4 py-3 rounded-lg shadow-2xl flex items-center space-x-2.5 animate-in slide-in-from-bottom-4 duration-200">
+          <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></div>
+          <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+          <span className="text-xs font-mono font-medium">{notificationMessage}</span>
+        </div>
+      )}
 
     </div>
   );
