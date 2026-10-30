@@ -198,3 +198,87 @@ def update_appointment_status(
         notes=apt.notes,
         created_at=apt.created_at,
     )
+
+
+@router.post("/{appointment_id}/cancel", response_model=AppointmentResponse)
+def cancel_appointment(
+    appointment_id: int,
+    db: Session = Depends(get_db)
+):
+    """
+    Cancel an existing appointment and release the slot.
+    """
+    apt = db.query(AppointmentModel).filter(AppointmentModel.id == appointment_id).first()
+    if not apt:
+        raise HTTPException(status_code=404, detail="Appointment not found.")
+
+    apt.status = "cancelled"
+    db.commit()
+    db.refresh(apt)
+
+    return AppointmentResponse(
+        id=apt.id,
+        appointment_code=apt.appointment_code,
+        advisor_id=apt.advisor_id,
+        advisor_name=find_advisor_name(apt.advisor_id),
+        client_name=apt.client_name,
+        client_email=apt.client_email,
+        client_phone=apt.client_phone,
+        topic=apt.topic,
+        slot_time=apt.slot_time,
+        consultation_mode=apt.consultation_mode,
+        status=apt.status,
+        notes=apt.notes,
+        created_at=apt.created_at,
+    )
+
+
+@router.post("/{appointment_id}/reschedule", response_model=AppointmentResponse)
+def reschedule_appointment(
+    appointment_id: int,
+    new_slot_time: str,
+    db: Session = Depends(get_db)
+):
+    """
+    Reschedule an existing consultation appointment to a new available slot time.
+    Verifies availability, prevents conflicts, and updates the database record.
+    """
+    apt = db.query(AppointmentModel).filter(AppointmentModel.id == appointment_id).first()
+    if not apt:
+        raise HTTPException(status_code=404, detail="Appointment not found.")
+
+    # Check for conflicts
+    conflict = db.query(AppointmentModel).filter(
+        AppointmentModel.advisor_id == apt.advisor_id,
+        AppointmentModel.slot_time == new_slot_time,
+        AppointmentModel.id != appointment_id,
+        AppointmentModel.status == "confirmed"
+    ).first()
+
+    if conflict:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="The requested new time slot is already booked. Please choose another slot."
+        )
+
+    apt.slot_time = new_slot_time
+    apt.status = "confirmed"
+    AdvisoryService.mark_slot_booked(new_slot_time)
+    db.commit()
+    db.refresh(apt)
+
+    return AppointmentResponse(
+        id=apt.id,
+        appointment_code=apt.appointment_code,
+        advisor_id=apt.advisor_id,
+        advisor_name=find_advisor_name(apt.advisor_id),
+        client_name=apt.client_name,
+        client_email=apt.client_email,
+        client_phone=apt.client_phone,
+        topic=apt.topic,
+        slot_time=apt.slot_time,
+        consultation_mode=apt.consultation_mode,
+        status=apt.status,
+        notes=apt.notes,
+        created_at=apt.created_at,
+    )
