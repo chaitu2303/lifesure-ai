@@ -94,7 +94,10 @@ export const AccountSwitcherModal: React.FC<AccountSwitcherModalProps> = ({
         }
 
         // Successfully authenticated customer
-        await loginAsCustomer(res.user_id);
+        await loginAsCustomer(res.user_id, {
+          full_name: res.full_name,
+          profile_id: res.user_id,
+        });
         setCustomerSuccess(`Welcome back, ${res.full_name}!`);
         setTimeout(() => {
           onClose();

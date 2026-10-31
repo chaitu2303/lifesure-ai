@@ -1,5 +1,8 @@
 from typing import List, Dict, Any, Optional
-from fastapi import APIRouter, HTTPException, status, Query
+from fastapi import APIRouter, HTTPException, status, Query, Depends
+from sqlalchemy.orm import Session
+from app.database import get_db
+from app.models import UserAccount, CustomerProfileRecord
 from app.data_loader import data_loader
 from app.services.calculation_engine import FinancialCalculationEngine
 from app.schemas import AssessmentCreateRequest
@@ -94,9 +97,9 @@ def list_customers(
     return output
 
 @router.get("/{profile_id}", response_model=Dict[str, Any])
-def get_customer_profile(profile_id: str):
+def get_customer_profile(profile_id: str, db: Session = Depends(get_db)):
     """
-    Get full profile details for a customer profile by ID, including
+    Get full profile details for a customer profile by ID or user_id, including
     their computed assessment, protection need, and plan data.
     """
     found = None
@@ -104,6 +107,39 @@ def get_customer_profile(profile_id: str):
         if p.get("profile_id") == profile_id:
             found = p
             break
+
+    # If not in synthetic JSON dataset, check if it is a registered UserAccount
+    if not found:
+        user_acc = db.query(UserAccount).filter_by(user_id=profile_id.strip()).first()
+        if user_acc:
+            # If user is linked to an existing profile
+            if user_acc.linked_profile_id:
+                for p in data_loader.customer_profiles:
+                    if p.get("profile_id") == user_acc.linked_profile_id:
+                        found = dict(p)
+                        found["full_name"] = user_acc.full_name
+                        found["email"] = user_acc.email
+                        found["profile_id"] = user_acc.user_id
+                        break
+            
+            # If user was freshly registered (no linked synthetic profile)
+            if not found:
+                found = {
+                    "profile_id": user_acc.user_id,
+                    "full_name": user_acc.full_name,
+                    "age": 30,
+                    "gender": "male",
+                    "city": "Mumbai",
+                    "city_tier": 1,
+                    "occupation": "Professional",
+                    "employment_type": "salaried_private",
+                    "annual_income_inr": 1200000,
+                    "monthly_household_expenses_inr": 50000,
+                    "monthly_premium_budget_inr": 2000,
+                    "marital_status": "married",
+                    "has_assessment": True,
+                    "email": user_acc.email,
+                }
 
     if not found:
         raise HTTPException(

@@ -82,6 +82,13 @@ export const AssessmentWizard: React.FC<AssessmentWizardProps> = ({
 }) => {
   const [currentStep, setCurrentStep] = useState<number>(1);
   const [formData, setFormData] = useState<AssessmentInput>(initialInput || DEFAULT_ASSESSMENT_INPUT);
+
+  // Keep formData in sync when the logged-in user or initialInput changes
+  useEffect(() => {
+    if (initialInput) {
+      setFormData(initialInput);
+    }
+  }, [initialInput]);
   const [loading, setLoading] = useState<boolean>(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [demoProfiles, setDemoProfiles] = useState<CustomerProfileSummary[]>([]);
