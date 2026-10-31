@@ -86,16 +86,28 @@ def provision_demo_customers():
     Reads customer_profiles.csv, hashes passwords into user_accounts,
     and writes the administrator-only credential workbook without silently overwriting.
     """
-    csv_path = Path(__file__).resolve().parent.parent.parent / "data" / "customer_profiles.csv"
-    if not csv_path.exists():
-        csv_path = Path(__file__).resolve().parent.parent.parent.parent / "FULL_CODE" / "data" / "customer_profiles.csv"
-    if not csv_path.exists():
-        csv_path = Path("E:/TalentAP/FULL_CODE/data/customer_profiles.csv")
-    if not csv_path.exists():
-        csv_path = Path("E:/TalentAP/Datasets/B2_Life_Insurance_Needs_Finder/data/customer_profiles.csv")
+    # Check standard paths relative to this file
+    app_dir = Path(__file__).resolve().parent.parent  # FULL_CODE/backend/app
+    backend_dir = app_dir.parent                     # FULL_CODE/backend
+    project_root = backend_dir.parent.parent         # E:/001191_B2 or workspace root
 
-    if not csv_path.exists():
-        raise FileNotFoundError(f"Source customer_profiles.csv not found at {csv_path}")
+    candidates = [
+        backend_dir.parent / "data" / "customer_profiles.csv",                                # FULL_CODE/data/
+        project_root / "FULL_CODE" / "data" / "customer_profiles.csv",
+        project_root / "Datasets" / "B2_Life_Insurance_Needs_Finder" / "data" / "customer_profiles.csv",
+        Path("E:/001191_B2/Datasets/B2_Life_Insurance_Needs_Finder/data/customer_profiles.csv"),
+        Path("E:/TalentAP/FULL_CODE/data/customer_profiles.csv"),
+        Path("E:/TalentAP/Datasets/B2_Life_Insurance_Needs_Finder/data/customer_profiles.csv"),
+    ]
+
+    csv_path = None
+    for p in candidates:
+        if p.exists():
+            csv_path = p
+            break
+
+    if not csv_path or not csv_path.exists():
+        raise FileNotFoundError(f"Source customer_profiles.csv not found in any candidate paths: {candidates}")
 
     # Read profiles from CSV
     with open(csv_path, "r", encoding="utf-8") as f:

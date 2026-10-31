@@ -26,8 +26,9 @@ def _find_glossary_path() -> Optional[Path]:
     """Locate glossary.md in the Datasets directory."""
     candidates = [
         Path(__file__).resolve().parents[4] / "Datasets" / "B2_Life_Insurance_Needs_Finder" / "docs" / "glossary.md",
-        Path("E:/TalentAP/Datasets/B2_Life_Insurance_Needs_Finder/docs/glossary.md"),
         Path(__file__).resolve().parents[3] / "Datasets" / "B2_Life_Insurance_Needs_Finder" / "docs" / "glossary.md",
+        Path("E:/001191_B2/Datasets/B2_Life_Insurance_Needs_Finder/docs/glossary.md"),
+        Path("E:/TalentAP/Datasets/B2_Life_Insurance_Needs_Finder/docs/glossary.md"),
     ]
     for p in candidates:
         if p.exists():
